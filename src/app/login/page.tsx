@@ -1,12 +1,14 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { Logotipo } from "@/components/marca/logotipo";
+import { sesionOpcional } from "@/lib/auth/guardas";
 
 import { FormularioAcceso } from "./formulario-acceso";
 
 export const metadata: Metadata = { title: "Iniciar sesión" };
 
-/** Cifras de la portada. Se conectarán a Supabase cuando exista el esquema. */
+/** Cifras de la portada. Se conectarán a datos reales más adelante. */
 const CIFRAS = [
   { valor: "1,284", etiqueta: "VALES EMITIDOS" },
   { valor: "6", etiqueta: "SUCURSALES" },
@@ -24,6 +26,13 @@ export default async function PaginaLogin({
 }: PageProps<"/login">) {
   const params = await searchParams;
   const redireccion = destinoSeguro(params.redirect);
+
+  // Esta comprobación vive aquí y no en el proxy a propósito: el proxy solo
+  // ve si hay cookie, no si vale. Cuando era él quien mandaba al panel, una
+  // cookie caducada rebotaba sin fin entre ambos.
+  if (await sesionOpcional()) redirect(redireccion);
+
+  const expirada = params.expirada === "1";
 
   return (
     <div className="bg-ink text-bone grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
@@ -65,7 +74,7 @@ export default async function PaginaLogin({
 
       {/* Formulario */}
       <section className="bg-bone text-ink flex items-center justify-center p-8 sm:p-14">
-        <FormularioAcceso redireccion={redireccion} />
+        <FormularioAcceso redireccion={redireccion} expirada={expirada} />
       </section>
     </div>
   );

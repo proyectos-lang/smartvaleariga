@@ -10,6 +10,13 @@ import { NextResponse, type NextRequest } from "next/server";
  * La validación real —token existente, no vencido, cuenta activa— la hace
  * `requerirSesion()` en `src/lib/auth/guardas.ts`, que es la frontera de
  * autorización de verdad. Una cookie con basura pasa por aquí y muere allí.
+ *
+ * Por eso este archivo **solo puede echar hacia el acceso, nunca traer hacia
+ * el panel**: no sabe si la cookie vale. Cuando también rebotaba /login hacia
+ * /panel, una cookie caducada dejaba la aplicación en bucle infinito —el
+ * proxy mandaba al panel, la guarda devolvía al acceso— y el navegador
+ * respondía con ERR_TOO_MANY_REDIRECTS. Esa decisión vive ahora en la página
+ * de acceso, que sí puede comprobar la sesión de verdad.
  */
 
 const COOKIE_SESION = "ariga_sesion";
@@ -45,13 +52,6 @@ export function proxy(request: NextRequest) {
     destino.pathname = "/login";
     destino.search = "";
     if (pathname !== "/") destino.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(destino);
-  }
-
-  if (tieneCookie && pathname === "/login") {
-    const destino = request.nextUrl.clone();
-    destino.pathname = "/panel";
-    destino.search = "";
     return NextResponse.redirect(destino);
   }
 

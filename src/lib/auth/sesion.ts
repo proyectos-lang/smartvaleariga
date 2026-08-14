@@ -36,6 +36,16 @@ function hashearToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * ¿Trae el navegador una cookie de sesión? No dice si es válida.
+ * Sirve para distinguir "nunca entró" de "se le caducó la sesión" y poder
+ * explicárselo en la pantalla de acceso.
+ */
+export async function hayCookieDeSesion() {
+  const almacen = await cookies();
+  return Boolean(almacen.get(COOKIE_SESION)?.value);
+}
+
 /** Crea la sesión, la persiste y deja la cookie puesta. */
 export async function abrirSesion(usuarioId: number, userAgent?: string | null) {
   const token = randomBytes(32).toString("base64url");

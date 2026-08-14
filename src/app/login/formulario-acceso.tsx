@@ -12,7 +12,14 @@ import { iniciarSesion, type EstadoAuth } from "@/lib/acciones/auth";
  * servidor. Con el hook, React lo dejaba fuera del render de servidor y la
  * pantalla de acceso solo aparecía después de hidratar.
  */
-export function FormularioAcceso({ redireccion }: { redireccion: string }) {
+export function FormularioAcceso({
+  redireccion,
+  expirada = false,
+}: {
+  redireccion: string;
+  /** Llegó con cookie pero sin sesión válida: caducó o se revocó. */
+  expirada?: boolean;
+}) {
   const [estado, accion, enviando] = useActionState<EstadoAuth, FormData>(
     iniciarSesion,
     null,
@@ -54,6 +61,12 @@ export function FormularioAcceso({ redireccion }: { redireccion: string }) {
           className="tracking-[0.14em]"
           required
         />
+
+        {expirada && !estado?.error ? (
+          <p className="border-gold/30 bg-gold/8 text-gold-deep rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">
+            Tu sesión terminó. Vuelve a entrar para continuar.
+          </p>
+        ) : null}
 
         {estado?.error ? (
           <p

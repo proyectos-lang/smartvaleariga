@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import { leerSesion, type SesionActiva } from "./sesion";
+import { hayCookieDeSesion, leerSesion, type SesionActiva } from "./sesion";
 
 /**
  * La sesión se resuelve una sola vez por request aunque el layout y varias
@@ -25,8 +25,15 @@ export async function requerirSesion(destino?: string): Promise<SesionActiva> {
   const sesion = await obtenerSesion();
   if (sesion) return sesion;
 
-  const parametro = destino ? `?redirect=${encodeURIComponent(destino)}` : "";
-  redirect(`/login${parametro}`);
+  const parametros = new URLSearchParams();
+  if (destino) parametros.set("redirect", destino);
+
+  // Traer cookie pero no sesión significa que caducó o se revocó. Merece un
+  // mensaje distinto al de quien simplemente no ha entrado nunca.
+  if (await hayCookieDeSesion()) parametros.set("expirada", "1");
+
+  const cadena = parametros.toString();
+  redirect(`/login${cadena ? `?${cadena}` : ""}`);
 }
 
 /** Exige rol de administrador. Los demás van al panel, no a una pantalla vacía. */
