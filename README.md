@@ -209,3 +209,30 @@ comercial.
 
 Pendiente de decidir: el país por defecto del prefijo telefónico
 (hoy +52) en [`campo-telefono.tsx`](src/components/vales/campo-telefono.tsx).
+
+---
+
+## Logotipo
+
+El original vive en [`design/ariga-logo-original.png`](design/ariga-logo-original.png).
+Todos los formatos que usa la aplicación se derivan de él:
+
+```bash
+npm run marca:generar                    # desde el original
+npm run marca:generar -- otro-logo.png   # desde otro archivo
+```
+
+| Salida | Uso |
+| --- | --- |
+| `public/brand/ariga-logo.png` | interfaz y tarjeta en pantalla |
+| `src/app/icon.png` | favicon (Next deriva las medidas) |
+| `src/app/apple-icon.png` | pantalla de inicio en iOS, sobre fondo negro |
+| `src/lib/marca-datos.ts` | el logo en base64 |
+
+El último existe porque la imagen para WhatsApp (`next/og`) y el PDF se
+arman en el servidor: leer de `public/` o pedirlo por red desde una función
+serverless es frágil, y empotrarlo no falla nunca. Es un archivo generado —
+no editarlo a mano.
+
+Para cambiar el logotipo basta sustituir el original y volver a ejecutar el
+comando. No hay que tocar código.

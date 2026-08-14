@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { NextResponse } from "next/server";
 
 import { valePorCodigo } from "@/lib/datos/vales";
+import { LOGO_DATA_URL } from "@/lib/marca-datos";
 import { qrDataUrl } from "@/lib/qr";
 import { urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
@@ -93,22 +94,11 @@ export async function GET(
             gap: 56,
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 22 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 22,
-                  letterSpacing: 14,
-                  color: oroClaro,
-                  fontWeight: 700,
-                }}
-              >
-                ARIGA
-              </span>
-              <span style={{ fontSize: 13, letterSpacing: 8, color: "#8E8A82" }}>
-                JOYERÍA
-              </span>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 18 }}>
+            {/* Grande a propósito: WhatsApp muestra la vista previa a menos
+                de la mitad de ancho, y el nombre va dentro del logotipo. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO_DATA_URL} width={158} height={158} alt="" />
 
             <div style={{ display: "flex", width: 64, height: 2, backgroundColor: oro }} />
 

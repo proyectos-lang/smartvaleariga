@@ -5,11 +5,12 @@ import { cn } from "@/lib/utils";
 /**
  * Isotipo de ARIGA.
  *
- * Sustituir `public/brand/ariga-monograma.svg` por el logotipo definitivo
- * (mismo nombre o actualizando `LOGOTIPO`) es lo único necesario para que
- * cambie en toda la aplicación.
+ * El archivo lo genera `npm run marca:generar` a partir del original en
+ * `design/`, junto con el favicon, el icono de iOS y la copia en base64 que
+ * usan la tarjeta compartible y el PDF. Para cambiar el logotipo se sustituye
+ * el original y se vuelve a ejecutar ese comando: no hay que tocar código.
  */
-const LOGOTIPO = "/brand/ariga-monograma.svg";
+const LOGOTIPO = "/brand/ariga-logo.png";
 
 export function Logotipo({
   tamano = 40,

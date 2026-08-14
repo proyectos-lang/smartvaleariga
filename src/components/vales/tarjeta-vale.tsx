@@ -95,15 +95,13 @@ export function TarjetaVale({
         <div className="relative flex flex-col items-center gap-5 px-6 py-8 sm:px-8">
           <div className="flex flex-col items-center gap-[10px]">
             <Image
-              src="/brand/ariga-monograma.svg"
+              src="/brand/ariga-logo.png"
               alt="ARIGA Joyería"
-              width={56}
-              height={56}
+              width={72}
+              height={72}
               className="rounded-full"
+              priority
             />
-            <span className="text-gold-light/70 text-[9px] leading-none font-medium tracking-[0.42em]">
-              ARIGA JOYERÍA
-            </span>
           </div>
 
           <div className="bg-gold/30 h-px w-12" />

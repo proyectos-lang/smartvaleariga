@@ -7,6 +7,8 @@ import {
   View,
 } from "@react-pdf/renderer";
 
+import { LOGO_DATA_URL } from "@/lib/marca-datos";
+
 /**
  * Vale de descuento en PDF, para imprimir o adjuntar por correo.
  *
@@ -41,13 +43,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  marcaNombre: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 15,
-    letterSpacing: 6,
-    color: C.goldLight,
-  },
-  marcaRubro: { fontSize: 7, letterSpacing: 4, color: "#8E8A82", marginTop: 5 },
+  logotipo: { width: 62, height: 62 },
   etiquetaCabecera: {
     fontSize: 7,
     letterSpacing: 3,
@@ -156,10 +152,8 @@ export function ValeDocumento(vale: DatosVale) {
     >
       <Page size="A5" orientation="landscape" style={s.page}>
         <View style={s.encabezado}>
-          <View>
-            <Text style={s.marcaNombre}>ARIGA</Text>
-            <Text style={s.marcaRubro}>JOYERIA</Text>
-          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image style={s.logotipo} src={LOGO_DATA_URL} />
           <View>
             <Text style={s.etiquetaCabecera}>VALE DE DESCUENTO</Text>
             <Text style={s.codigo}>{vale.codigo}</Text>
