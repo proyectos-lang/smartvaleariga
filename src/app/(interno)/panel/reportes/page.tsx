@@ -171,37 +171,41 @@ export default async function PaginaReportes() {
             }))}
           />
 
-          <table className="border-ink/6 w-full border-collapse border-t text-[12px]">
-            <thead>
-              <tr className="text-ink/40 text-left">
-                <th className="py-[10px] font-medium">Tipo</th>
-                <th className="py-[10px] text-right font-medium">Compras</th>
-                <th className="py-[10px] text-right font-medium">Conversión</th>
-                <th className="py-[10px] text-right font-medium">Venta</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datosTipo.map((d) => (
-                <tr key={d.tipo} className="border-ink/6 border-t">
-                  <td className="py-[10px]">
-                    <span className="flex items-center gap-2">
-                      <PuntoTipo tipo={d.tipo} />
-                      {d.tipo}
-                    </span>
-                  </td>
-                  <td className="py-[10px] text-right tabular-nums">
-                    {d.redenciones}
-                  </td>
-                  <td className="py-[10px] text-right tabular-nums">
-                    {d.conversion === null ? "—" : `${d.conversion}%`}
-                  </td>
-                  <td className="py-[10px] text-right font-medium tabular-nums">
-                    {d.ingreso > 0 ? monedaCompacta(d.ingreso) : "—"}
-                  </td>
+          {/* En un teléfono estrecho las cuatro columnas se aprietan; el
+              contenedor desplaza la tabla en vez de encoger las cifras. */}
+          <div className="-mx-1 overflow-x-auto px-1">
+            <table className="border-ink/6 w-full min-w-[300px] border-collapse border-t text-[12px]">
+              <thead>
+                <tr className="text-ink/40 text-left">
+                  <th className="py-[10px] font-medium">Tipo</th>
+                  <th className="py-[10px] text-right font-medium">Compras</th>
+                  <th className="py-[10px] text-right font-medium">Conversión</th>
+                  <th className="py-[10px] text-right font-medium">Venta</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {datosTipo.map((d) => (
+                  <tr key={d.tipo} className="border-ink/6 border-t">
+                    <td className="py-[10px]">
+                      <span className="flex items-center gap-2">
+                        <PuntoTipo tipo={d.tipo} />
+                        {d.tipo}
+                      </span>
+                    </td>
+                    <td className="py-[10px] text-right tabular-nums">
+                      {d.redenciones}
+                    </td>
+                    <td className="py-[10px] text-right tabular-nums">
+                      {d.conversion === null ? "—" : `${d.conversion}%`}
+                    </td>
+                    <td className="py-[10px] text-right font-medium tabular-nums">
+                      {d.ingreso > 0 ? monedaCompacta(d.ingreso) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Tarjeta>
 
         <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">

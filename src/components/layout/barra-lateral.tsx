@@ -57,9 +57,12 @@ export function BarraLateral({
       className={cn(
         "ariga-sidebar border-gold/16 flex w-[262px] shrink-0 flex-col gap-[26px] border-r px-[18px] py-[26px]",
         // Móvil: cajón deslizante sobre el contenido.
-        "fixed inset-y-0 left-0 z-50 transition-transform duration-250 lg:static lg:z-auto lg:translate-x-0",
-        "lg:sticky lg:top-0 lg:h-screen",
-        abierta ? "translate-x-0" : "-translate-x-full",
+        "fixed inset-y-0 left-0 z-50 transition-[transform,visibility] duration-250 lg:static lg:z-auto lg:translate-x-0",
+        "lg:sticky lg:top-0 lg:h-screen lg:visible",
+        // Cerrado no basta con sacarlo de pantalla: `visibility: hidden` lo
+        // saca también del orden de tabulación y del árbol de accesibilidad,
+        // para que el teclado no se pierda dentro de un menú invisible.
+        abierta ? "visible translate-x-0" : "invisible -translate-x-full",
       )}
     >
       <div className="flex items-center justify-between">

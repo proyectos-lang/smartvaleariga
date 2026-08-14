@@ -11,11 +11,12 @@ const nextConfig: NextConfig = {
   },
 
   /**
-   * Paquetes que deben cargarse como módulos nativos de Node en el servidor
-   * en lugar de pasar por el bundler: llevan binarios o dependen de APIs
-   * de Node que no deben empaquetarse.
+   * Se carga como módulo nativo de Node en el servidor en lugar de pasar por
+   * el bundler: depende de APIs de Node que no deben empaquetarse.
+   * (`sharp` no hace falta aquí: Next lo resuelve solo para optimizar
+   * imágenes, y esta aplicación no lo importa de forma directa.)
    */
-  serverExternalPackages: ["@react-pdf/renderer", "sharp", "pdf-lib"],
+  serverExternalPackages: ["@react-pdf/renderer"],
 
   images: {
     // Dominios permitidos para <Image>. Al usar Supabase Storage, agregar aquí

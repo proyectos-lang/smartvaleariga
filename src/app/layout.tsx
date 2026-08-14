@@ -31,6 +31,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0B0B0C",
+  // `cover` es lo que da valor a env(safe-area-inset-*): sin él, la barra
+  // inferior del móvil queda debajo del indicador de inicio en iPhone.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

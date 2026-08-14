@@ -1,9 +1,12 @@
-# ARIGA · Vales digitales
+# ARIGA SMART VALE
 
-Plataforma interna de **generación y redención de vales** para ARIGA Joyería.
+Gestión, emisión y trazabilidad de **vales de descuento con código QR** para
+tiendas físicas. Las vendedoras emiten vales dentro de un rango correlativo
+asignado, los clientes los presentan en caja, y cada compra queda registrada
+para medir la efectividad de la campaña.
 
 Stack: **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript** ·
-**Tailwind v4** · **Supabase** · desplegado en **Vercel**.
+**Tailwind v4** · **Supabase** (solo Postgres) · desplegado en **Vercel**.
 
 ---
 
@@ -11,35 +14,85 @@ Stack: **Next.js 16** (App Router, Turbopack) · **React 19** · **TypeScript** 
 
 ```bash
 npm install
-cp .env.example .env.local   # y llena los valores
-npm run dev                  # http://localhost:3000
+cp .env.example .env.local      # y llena los valores
+npm run db:bundle               # genera supabase/aplicar.sql
+# pega ese archivo en Supabase → SQL Editor → Run
+npm run usuarios:crear -- --nombre "Tu Nombre" --correo admin --rol admin
+npm run dev                     # http://localhost:3000
 ```
 
-La aplicación **arranca sin Supabase configurado**: muestra la interfaz con
-datos de muestra y un usuario de prueba. En cuanto `.env.local` tiene
-credenciales válidas, el middleware exige sesión real.
+Comprobaciones rápidas:
+
+```bash
+npm run db:check       # conexión, esquema y cierre de seguridad
+npm run test:negocio   # reglas de negocio contra la base (se autolimpia)
+npm run check          # TypeScript + ESLint
+```
 
 ---
 
-## Variables de entorno
+## Cómo funciona
 
-| Variable                               | Dónde se usa       | Notas                                          |
-| -------------------------------------- | ------------------ | ---------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | cliente + servidor | Project Settings → API                         |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | cliente + servidor | Clave pública nueva (`sb_publishable_…`). Preferida |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | cliente + servidor | Clave anon en JWT. Respaldo de la anterior     |
-| `SUPABASE_SERVICE_ROLE_KEY`            | solo servidor      | Ignora RLS. En Vercel, marcar "Sensitive"      |
-| `NEXT_PUBLIC_SITE_URL`                 | servidor           | Base de los enlaces codificados en el QR       |
+### Las tres puertas de entrada
 
-El esquema (`smartvale`) **no** es variable de entorno: es una constante en
-[env.ts](src/lib/supabase/env.ts), porque forma parte de los tipos que genera
-`npm run db:types`.
+| Tipo | Origen | Campo propio |
+| --- | --- | --- |
+| **A1** | Llamada a la base histórica | Clasificación: 30 / 60 / 90 días o VIP |
+| **A2** | Prospección en frío | Empresa o centro comercial de origen |
+| **A3** | Visitante del punto de venta | Tienda donde se registra |
 
-Verificar la conexión en cualquier momento:
+El código tiene la forma `AR-[TIPO]-[CORRELATIVO]` → `AR-A1-000045`.
 
-```bash
-npm run db:check
-```
+### Rangos correlativos
+
+El administrador asigna a cada vendedora un bloque (0–99, 100–199, …). **Los
+tres tipos comparten el mismo contador**: cada emisión, sea A1, A2 o A3,
+consume un número del bloque. Al agotarse, la aplicación bloquea la emisión
+con el mensaje de la especificación.
+
+Los bloques **no se solapan en todo el sistema**, lo que hace que cada
+correlativo —y por tanto cada código— sea único. `fn_emitir_vale` toma el
+número bajo un cerrojo por vendedora: 20 emisiones simultáneas producen 20
+números distintos y sin huecos (verificado en `npm run test:negocio`).
+
+### Redención
+
+Un vale admite **compras ilimitadas mientras esté vigente**. Registrar una
+nunca lo consume: cada compra es una fila aparte en `redenciones`, con su
+propio comprador. Es lo que hace medible el alcance viral de los A2, pensados
+para compartirse.
+
+El descuento **se congela dentro del vale al emitirlo**. Si mañana cambia la
+configuración, los vales ya entregados siguen valiendo lo que se prometió al
+cliente.
+
+---
+
+## Seguridad
+
+Esta aplicación **no usa Supabase Auth**, así que no existe `auth.uid()` y RLS
+no puede identificar al usuario. La protección se mueve de la base de datos a
+la capa de servidor:
+
+- El esquema `smartvale` tiene RLS activado **sin políticas** → inalcanzable
+  para `anon` y `authenticated`. `npm run db:check` lo verifica en cada corrida.
+- El único acceso es con `SUPABASE_SERVICE_ROLE_KEY`, que **nunca sale del
+  servidor**. No hay cliente de Supabase para el navegador: todo dato pasa por
+  Server Components, Server Actions o Route Handlers.
+- **La autorización vive en [`src/lib/auth/guardas.ts`](src/lib/auth/guardas.ts).**
+  Toda página o acción que toque datos debe empezar llamando a
+  `requerirSesion()` o `requerirAdmin()`. No hay una segunda red de seguridad
+  debajo.
+- Contraseñas con **scrypt** (sal por usuario, comparación en tiempo constante).
+- Sesiones con token opaco de 32 bytes; en la base solo se guarda su SHA-256,
+  así que ni con acceso a la tabla se puede suplantar a nadie.
+- El proxy hace una comprobación barata de cookie —corre en cada navegación—;
+  la validación real la hace la guarda del layout.
+
+Rutas públicas por diseño: `/login`, `/v/[codigo]` (la cara del vale que abre
+quien recibe el WhatsApp) y `/api/vales/[codigo]/tarjeta` (la imagen que pide
+el servidor de WhatsApp para la vista previa). El **PDF del mismo vale sigue
+protegido**: es material interno.
 
 ---
 
@@ -48,164 +101,111 @@ npm run db:check
 ```
 src/
 ├─ app/
-│  ├─ layout.tsx                 fuentes, metadata, <html lang="es-MX">
-│  ├─ globals.css                tokens de diseño (Tailwind v4 @theme)
-│  ├─ login/                     pantalla de acceso
+│  ├─ login/                     acceso
 │  ├─ (interno)/                 todo lo que exige sesión
-│  │  ├─ layout.tsx              carga el usuario y monta el armazón
-│  │  └─ panel/                  tablero + marcador de secciones pendientes
-│  └─ api/
-│     ├─ qr/                     PNG de un QR arbitrario
-│     └─ vales/[folio]/pdf/      PDF del vale con su QR incrustado
+│  │  ├─ layout.tsx              frontera de autenticación
+│  │  └─ panel/
+│  │     ├─ page.tsx             resumen y accesos rápidos
+│  │     ├─ emitir/              las tres puertas + formularios
+│  │     ├─ redimir/             escáner y captura de compra
+│  │     ├─ vales/ redenciones/  listados y ficha del vale
+│  │     ├─ vendedoras/ rangos/ tiendas/ configuracion/   (admin)
+│  │     └─ reportes/            inteligencia comercial
+│  ├─ v/[codigo]/                cara pública del vale
+│  └─ api/vales/[codigo]/        tarjeta PNG y PDF
 ├─ components/
-│  ├─ marca/                     logotipo e identidad
-│  ├─ layout/                    sidebar, cabecera, armazón
-│  ├─ ui/                        botón, campo, tarjeta, chip de estado
-│  └─ vales/                     diálogo de emisión
+│  ├─ marca/ layout/ ui/         identidad, armazón, primitivas
+│  ├─ vales/                     tarjeta, escáner, distintivos
+│  └─ reportes/                  barras, medidor, serie temporal
 ├─ lib/
-│  ├─ supabase/                  client · server · middleware · env · types
-│  ├─ acciones/                  Server Actions
-│  ├─ qr.ts                      generación de códigos QR
-│  ├─ pdf/                       plantilla y render de PDFs
-│  ├─ image.ts                   procesamiento de imágenes (servidor)
-│  ├─ image-cliente.ts           captura del DOM a PNG (navegador)
-│  ├─ format.ts                  moneda MXN y fechas en español
-│  ├─ navegacion.ts              menú lateral (fuente de verdad)
-│  └─ datos-demo.ts              ⚠ provisional, se borra al conectar la BD
-├─ middleware.ts                 refresco de sesión + protección de rutas
+│  ├─ auth/                      contraseñas, sesiones, guardas
+│  ├─ datos/                     lecturas por dominio
+│  ├─ acciones/                  Server Actions (validadas con zod)
+│  ├─ supabase/                  cliente de servicio, tipos, esquema
+│  ├─ qr.ts compartir.ts         QR, enlaces de WhatsApp
+│  └─ pdf/                       plantilla del vale
+└─ proxy.ts                      guarda barata de rutas
+supabase/migrations/             esquema, funciones y vistas
 design/                          mockup original de referencia
-supabase/                        config y migraciones del CLI
 ```
 
 ---
 
-## Sistema de diseño
+## Base de datos
 
-Los tokens salen del mockup en [design/](design/) y viven en
-[globals.css](src/app/globals.css). Se usan como clases normales de Tailwind:
-`bg-ink`, `text-gold-light`, `border-gold/40`, `font-display`, `tracking-label`.
+El proyecto de Supabase **está compartido**: `public` aloja el ERP de ARIGA.
+SMART VALE vive aislado en el esquema `smartvale` y no lee ni escribe nada de
+`public`.
 
-| Token           | Valor     | Uso                                  |
-| --------------- | --------- | ------------------------------------ |
-| `ink`           | `#0B0B0C` | negro base, sidebar, botón principal |
-| `bone`          | `#F6F3ED` | crema, fondo del área de trabajo     |
-| `paper`         | `#FFFFFF` | tarjetas y campos                    |
-| `gold`          | `#C6A15B` | acento principal                     |
-| `gold-light`    | `#E7CE92` | texto sobre fondo oscuro             |
-| `gold-dark`     | `#9C7B36` | texto sobre crema                    |
-| `clay`          | `#8E4534` | vencido / error                      |
-
-Tipografía: **Cormorant Garamond** (`font-display`) para cifras y títulos,
-**Geist** (`font-sans`) para el resto, **Geist Mono** para folios.
-
-El logotipo provisional está en `public/brand/ariga-monograma.svg`;
-sustituirlo por el definitivo lo cambia en toda la aplicación.
-
----
-
-## QR, PDF e imágenes
-
-| Necesidad                         | Herramienta                              | Dónde                      |
-| --------------------------------- | ---------------------------------------- | -------------------------- |
-| QR en servidor (PDF, correo)      | `qrcode`                                 | [lib/qr.ts](src/lib/qr.ts) |
-| QR en pantalla (SVG nítido)       | `react-qr-code`                          | componentes cliente        |
-| PDF maquetado del vale            | `@react-pdf/renderer`                    | [lib/pdf/](src/lib/pdf/)   |
-| Unir / sellar / rellenar PDFs     | `pdf-lib`                                | según haga falta           |
-| Redimensionar y convertir imágenes| `sharp`                                  | [lib/image.ts](src/lib/image.ts) |
-| Tarjeta compartible como PNG      | `next/og` (`ImageResponse`)              | route handler              |
-| Captura del DOM a PNG             | `html-to-image`                          | [lib/image-cliente.ts](src/lib/image-cliente.ts) |
-
-Comprobación rápida con el servidor levantado:
-
-```
-http://localhost:3000/api/qr?texto=https://ariga.mx/v/AR-2451
-http://localhost:3000/api/vales/AR-2451/pdf
-```
-
----
-
-## Supabase
-
-### El proyecto está compartido — trabajamos en `smartvale`
-
-El proyecto `aijexrcfmakphpqihkig` **ya aloja el ERP de ARIGA** en el esquema
-`public`: 139 objetos entre tablas, vistas y funciones (productos, ventas,
-clientes, tiendas, inventario, comisiones, cursos, tickets…).
-
-Esta aplicación vive aparte, en el esquema **`smartvale`**, para no interferir.
-Los tres clientes de Supabase apuntan ahí por omisión. Para leer del ERP hay
-que pedirlo de forma explícita:
-
-```ts
-const supabase = await createClient();
-
-// esquema smartvale (por omisión)
-const { data: vales } = await supabase.from("vales").select();
-
-// esquema public — el ERP existente
-const { data: piezas } = await supabase.schema("public").from("productos").select();
-```
-
-Esquemas expuestos en la API: `public`, `graphql_public`, `smartvale`.
-
-### Comandos
-
-El CLI está instalado como dependencia de desarrollo:
+Ocho tablas (`usuarios`, `sesiones`, `tiendas`, `rangos`, `contactos`,
+`vales`, `redenciones`, `configuracion`), tres enums, trece funciones y siete
+vistas de métricas.
 
 ```bash
-npm run db:check           # verifica conexión, esquemas expuestos y tablas
-npm run db:link            # enlaza con el proyecto remoto (pide el ref)
-npm run db:new nombre      # crea una migración vacía en supabase/migrations/
-npm run db:push            # aplica las migraciones al proyecto remoto
-npm run db:types           # regenera src/lib/supabase/types.ts desde smartvale
+npm run db:bundle    # empaqueta las migraciones para el SQL Editor
+npm run db:check     # verifica conexión y cierre de seguridad
+npm run db:link      # enlaza el CLI (pide la contraseña de la base)
+npm run db:push      # aplica migraciones si el CLI está enlazado
+npm run db:types     # regenera src/lib/supabase/types.ts
 ```
 
-Reglas de uso de los clientes:
+Sin el CLI enlazado, los tipos de `src/lib/supabase/types.ts` se mantienen a
+mano y deben seguir a las migraciones.
 
-- **Server Components / Actions / Route Handlers** → `createClient()` de
-  [lib/supabase/server.ts](src/lib/supabase/server.ts). Uno nuevo por request.
-- **Componentes `"use client"`** → `createClient()` de
-  [lib/supabase/client.ts](src/lib/supabase/client.ts).
-- **Tareas administrativas** → `createAdminClient()`. Ignora RLS: solo servidor.
+---
 
-Toda tabla nueva debe nacer con **RLS activado** y sus políticas en la misma
-migración.
+## Variables de entorno
+
+| Variable | Notas |
+| --- | --- |
+| `SUPABASE_URL` | Project Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Única credencial de la app. En Vercel, marcar **Sensitive** |
+| `NEXT_PUBLIC_SITE_URL` | Base de los enlaces del QR. En producción, el dominio real |
+
+El esquema (`smartvale`) es una constante en
+[`src/lib/supabase/env.ts`](src/lib/supabase/env.ts), no una variable: forma
+parte de los tipos generados.
+
+---
+
+## Color de las gráficas
+
+Los tres tipos de vale tienen colores de serie validados con el script de
+comprobación de daltonismo, definidos como tokens en
+[`globals.css`](src/app/globals.css):
+
+| | | |
+| --- | --- | --- |
+| A1 | `#A17916` ámbar | ΔE bajo daltonismo **19.7** |
+| A2 | `#215BA3` azul | ΔE con visión normal **25.1** |
+| A3 | `#9E3B24` arcilla | contraste sobre blanco ≥ 3:1 |
+
+**No sustituir un valor sin volver a validarlos como conjunto.** Los tonos de
+marca que se probaron primero fallaban: salvia contra arcilla mide ΔE 3.9 en
+deuteranopía, es decir, indistinguibles para 1 de cada 12 hombres.
 
 ---
 
 ## Despliegue en Vercel
 
-1. Subir el repositorio a GitHub.
-2. En Vercel: **Add New → Project** e importar el repo. Next.js se detecta solo,
-   no hace falta `vercel.json`.
-3. Cargar las cuatro variables de entorno en Production, Preview y Development.
-   `SUPABASE_SERVICE_ROLE_KEY` va marcada como **Sensitive**.
-4. `NEXT_PUBLIC_SITE_URL` debe ser el dominio final: de ahí salen los enlaces
-   que se codifican en cada QR.
-5. En Supabase → Authentication → URL Configuration, agregar el dominio de
-   producción y `https://*.vercel.app` a las *Redirect URLs*.
+1. Subir el repositorio a GitHub e importarlo en Vercel (Next.js se detecta solo).
+2. Cargar las tres variables de entorno en Production, Preview y Development.
+   `SUPABASE_SERVICE_ROLE_KEY` marcada como **Sensitive**.
+3. `NEXT_PUBLIC_SITE_URL` debe ser el dominio final: de ahí salen los enlaces
+   que se codifican en cada QR y la imagen de la vista previa de WhatsApp.
+
+El escáner de QR **exige HTTPS** para acceder a la cámara. En local funciona
+por `localhost`; para probar desde un teléfono en la red hay que servir por
+HTTPS o usar el campo manual.
 
 ---
 
-## Comandos
+## Estado
 
-| Comando             | Qué hace                              |
-| ------------------- | ------------------------------------- |
-| `npm run dev`       | servidor de desarrollo con Turbopack  |
-| `npm run build`     | compilación de producción             |
-| `npm run start`     | sirve la compilación                  |
-| `npm run check`     | TypeScript + ESLint                   |
-| `npm run typecheck` | solo TypeScript                       |
-| `npm run lint`      | solo ESLint                           |
+Funcionando y verificado contra la base real: emisión A1/A2/A3, entrega por
+WhatsApp, imagen y PDF, redención con escáner, listados, administración de
+cuentas, rangos, tiendas y configuración, y el tablero de inteligencia
+comercial.
 
----
-
-## Estado actual
-
-Lo que ya funciona: identidad visual, pantalla de acceso, armazón del panel con
-navegación, tablero con datos de muestra, autenticación por correo y contraseña
-contra Supabase, protección de rutas, y las utilidades de QR, PDF e imágenes.
-
-Lo que falta definir: el modelo de datos (vales, clientes, piezas, abonos,
-sucursales, usuarios), las reglas de negocio de emisión y canje, y las
-secciones del menú más allá del tablero.
+Pendiente de decidir: el país por defecto del prefijo telefónico
+(hoy +52) en [`campo-telefono.tsx`](src/components/vales/campo-telefono.tsx).

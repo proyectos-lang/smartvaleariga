@@ -8,9 +8,6 @@ export { ValeDocumento };
 /**
  * Generación de PDFs. Estas funciones corren **solo en el servidor**
  * (Route Handlers o Server Actions con `runtime = "nodejs"`).
- *
- * Para manipular PDFs ya existentes —unir, sellar, rellenar formularios—
- * usa `pdf-lib`, que también está instalado.
  */
 
 /** PDF del vale como Buffer: listo para descargar, adjuntar o subir a Storage. */
