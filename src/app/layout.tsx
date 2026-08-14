@@ -39,7 +39,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="es-MX"
+      lang="es-GT"
       className={`${geist.variable} ${geistMono.variable} ${cormorant.variable} h-full`}
     >
       <body className="min-h-full">{children}</body>

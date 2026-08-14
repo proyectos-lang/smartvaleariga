@@ -146,7 +146,7 @@ export function FormularioUsuario({
       <Campo
         etiqueta="TELÉFONO (OPCIONAL)"
         name="telefono"
-        placeholder="81 1234 5678"
+        placeholder="5512 3456"
       />
 
       <Campo

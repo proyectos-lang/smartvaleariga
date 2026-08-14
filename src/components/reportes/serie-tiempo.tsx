@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 
+import { REGION } from "@/lib/format";
+
 /**
  * Serie temporal de dos líneas con cruceta y tooltip.
  *
@@ -28,7 +30,7 @@ const SERIES = [
 
 function formatoDia(iso: string) {
   const d = new Date(`${iso}T12:00:00`);
-  return d.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+  return d.toLocaleDateString(REGION, { day: "numeric", month: "short" });
 }
 
 export function SerieTiempo({ datos }: { datos: PuntoSerie[] }) {
@@ -147,7 +149,7 @@ export function SerieTiempo({ datos }: { datos: PuntoSerie[] }) {
                 textAnchor="end"
                 className="fill-ink/40 text-[10px] tabular-nums"
               >
-                {t.valor.toLocaleString("es-MX")}
+                {t.valor.toLocaleString(REGION)}
               </text>
             </g>
           ))}
@@ -285,7 +287,7 @@ export function SerieTiempo({ datos }: { datos: PuntoSerie[] }) {
       </details>
 
       <span className="sr-only">
-        Escala máxima {tope.toLocaleString("es-MX")}.
+        Escala máxima {tope.toLocaleString(REGION)}.
       </span>
     </div>
   );

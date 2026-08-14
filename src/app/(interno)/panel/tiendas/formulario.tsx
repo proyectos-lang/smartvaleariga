@@ -30,7 +30,7 @@ export function FormularioTienda() {
       <Campo
         etiqueta="TELÉFONO (OPCIONAL)"
         name="telefono"
-        placeholder="81 1234 5678"
+        placeholder="2345 6789"
       />
 
       {estado?.error ? (

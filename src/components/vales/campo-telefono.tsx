@@ -14,15 +14,16 @@ import { cn } from "@/lib/utils";
  * tiene por qué elegirla cada vez.
  */
 
+/** Guatemala primero: es donde opera ARIGA. El resto, por cercanía. */
 const PAISES = [
-  { clave: "52", nombre: "México" },
-  { clave: "506", nombre: "Costa Rica" },
-  { clave: "1", nombre: "EE. UU. / Canadá" },
-  { clave: "57", nombre: "Colombia" },
   { clave: "502", nombre: "Guatemala" },
   { clave: "503", nombre: "El Salvador" },
   { clave: "504", nombre: "Honduras" },
+  { clave: "505", nombre: "Nicaragua" },
+  { clave: "506", nombre: "Costa Rica" },
   { clave: "507", nombre: "Panamá" },
+  { clave: "52", nombre: "México" },
+  { clave: "1", nombre: "EE. UU. / Canadá" },
 ];
 
 const RECUERDO = "ariga_clave_pais";
@@ -44,7 +45,7 @@ function claveGuardada() {
 
 export function CampoTelefono({
   error,
-  claveInicial = "52",
+  claveInicial = "502",
 }: {
   error?: string;
   claveInicial?: string;
@@ -96,7 +97,7 @@ export function CampoTelefono({
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          placeholder="81 1234 5678"
+          placeholder="5512 3456"
           value={numero}
           onChange={(e) => setNumero(e.target.value.replace(/\D/g, ""))}
           className="text-ink min-w-0 flex-1 border-none bg-transparent px-[14px] py-[13px] text-sm outline-none"

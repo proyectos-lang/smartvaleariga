@@ -18,7 +18,7 @@ cp .env.example .env.local      # y llena los valores
 npm run db:bundle               # genera supabase/aplicar.sql
 # pega ese archivo en Supabase → SQL Editor → Run
 npm run usuarios:crear -- --nombre "Tu Nombre" --correo admin --rol admin
-npm run dev                     # http://localhost:3000
+npm run dev                     # http://localhost:3001
 ```
 
 Comprobaciones rápidas:
@@ -207,8 +207,23 @@ WhatsApp, imagen y PDF, redención con escáner, listados, administración de
 cuentas, rangos, tiendas y configuración, y el tablero de inteligencia
 comercial.
 
-Pendiente de decidir: el país por defecto del prefijo telefónico
-(hoy +52) en [`campo-telefono.tsx`](src/components/vales/campo-telefono.tsx).
+---
+
+## Región
+
+ARIGA opera en **Guatemala**. Eso fija dos cosas:
+
+- El prefijo telefónico por defecto es **+502**, en
+  [`campo-telefono.tsx`](src/components/vales/campo-telefono.tsx). El número
+  se guarda en dígitos con la clave incluida, que es lo que consume `wa.me`.
+- Los importes se muestran en **quetzales** (`Q 12,400.00`). La región y la
+  moneda son dos constantes en [`format.ts`](src/lib/format.ts): si el
+  negocio pasara a cotizar en dólares, cambiarlas es todo lo que hace falta.
+  En la base los montos son `numeric` sin unidad, así que esto solo afecta a
+  cómo se presentan.
+
+La app corre en el **puerto 3001**. `NEXT_PUBLIC_SITE_URL` tiene que
+coincidir con el puerto: de ahí sale la URL que se codifica en cada QR.
 
 ---
 

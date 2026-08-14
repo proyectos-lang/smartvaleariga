@@ -1,3 +1,4 @@
+import { REGION } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,7 +50,7 @@ export function Barras({
                 ) : null}
               </span>
               <span className="text-ink shrink-0 text-[12.5px] font-semibold tabular-nums">
-                {d.valorTexto ?? d.valor.toLocaleString("es-MX")}
+                {d.valorTexto ?? d.valor.toLocaleString(REGION)}
               </span>
             </div>
 

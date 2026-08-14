@@ -1,3 +1,4 @@
+import { REGION } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -51,8 +52,8 @@ export function Medidor({
       </div>
 
       <span className="text-ink/45 text-[11.5px]">
-        {parteTexto ?? parte.toLocaleString("es-MX")} de{" "}
-        {totalTexto ?? total.toLocaleString("es-MX")}
+        {parteTexto ?? parte.toLocaleString(REGION)} de{" "}
+        {totalTexto ?? total.toLocaleString(REGION)}
         {nota ? ` · ${nota}` : ""}
       </span>
     </div>

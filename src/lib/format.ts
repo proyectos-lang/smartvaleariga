@@ -1,29 +1,43 @@
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { es } from "date-fns/locale";
 
-/** $12,400.00 — moneda mexicana. */
+/**
+ * Región y moneda de la operación.
+ *
+ * ARIGA opera en Guatemala, así que los importes se muestran en quetzales
+ * (`Q 12,400.00`). Si el negocio cotiza en dólares, cambiar estas dos
+ * constantes es todo lo que hace falta: no hay ningún símbolo escrito a mano
+ * en la interfaz.
+ *
+ * En la base los montos son `numeric` sin unidad; esto solo afecta a cómo se
+ * presentan.
+ */
+export const REGION = "es-GT";
+const MONEDA = "GTQ";
+
+/** Q 12,400.00 — importe exacto. */
 export function moneda(monto: number) {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat(REGION, {
     style: "currency",
-    currency: "MXN",
+    currency: MONEDA,
     minimumFractionDigits: 2,
   }).format(monto);
 }
 
-/** $12,400 — sin centavos, para tarjetas y tablas. */
+/** Q 12,400 — sin centavos, para tarjetas y listados. */
 export function monedaCorta(monto: number) {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat(REGION, {
     style: "currency",
-    currency: "MXN",
+    currency: MONEDA,
     maximumFractionDigits: 0,
   }).format(monto);
 }
 
-/** $186.4k — para KPIs. */
+/** Q 186.4 mil — para indicadores. */
 export function monedaCompacta(monto: number) {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat(REGION, {
     style: "currency",
-    currency: "MXN",
+    currency: MONEDA,
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(monto);
