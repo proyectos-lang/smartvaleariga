@@ -12,7 +12,7 @@ import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 
 export const metadata: Metadata = { title: "Vales" };
 
-const TIPOS: (TipoVale | "todos")[] = ["todos", "A1", "A2", "A3"];
+const TIPOS: (TipoVale | "todos")[] = ["todos", "A1", "A2", "A3", "A4"];
 const ESTADOS: (EstadoVale | "todos")[] = [
   "todos",
   "activo",

@@ -142,6 +142,11 @@ export async function viralidadA2(): Promise<ViralidadA2> {
       alcance_maximo: null,
       vales_compartidos: 0,
       ingreso_a2: 0,
+      referidos_a4: 0,
+      referidos_convertidos: 0,
+      ingreso_a4: 0,
+      referidos_desde_a2: 0,
+      referidos_desde_a1: 0,
     }
   );
 }

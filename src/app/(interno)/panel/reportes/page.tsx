@@ -28,6 +28,7 @@ const COLOR_TIPO: Record<TipoVale, string> = {
   A1: "var(--color-serie-a1)",
   A2: "var(--color-serie-a2)",
   A3: "var(--color-serie-a3)",
+  A4: "var(--color-serie-a4)",
 };
 
 export default async function PaginaReportes({
@@ -62,7 +63,7 @@ export default async function PaginaReportes({
     );
   }
 
-  const tipos: TipoVale[] = ["A1", "A2", "A3"];
+  const tipos: TipoVale[] = ["A1", "A2", "A3", "A4"];
   const datosTipo = tipos.map((t) => {
     const fila = porTipo.find((p) => p.tipo === t);
     return {
@@ -262,10 +263,10 @@ export default async function PaginaReportes({
         <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
           <div className="flex flex-col gap-1">
             <h3 className="font-display m-0 text-lg leading-none font-normal">
-              Viralidad de los vales A2
+              Boca en boca
             </h3>
             <p className="text-ink/45 m-0 text-[12px]">
-              Los únicos pensados para compartirse.
+              Qué tanto sale un vale del círculo de quien lo recibió.
             </p>
           </div>
 
@@ -322,6 +323,47 @@ export default async function PaginaReportes({
               />
             </>
           )}
+
+          {/* El A4 es la otra mitad de la historia: compartir el vale deja
+              una compra, traer a alguien deja una persona registrada. */}
+          {viral.referidos_a4 > 0 ? (
+            <div className="border-ink/6 flex flex-col gap-3 border-t pt-5">
+              <span className="text-ink/42 text-[9px] font-medium tracking-[0.18em]">
+                REFERIDOS QUE LLEGARON A TIENDA
+              </span>
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+                {(
+                  [
+                    [
+                      "PERSONAS",
+                      String(viral.referidos_a4),
+                      `${viral.referidos_desde_a2} desde A2 · ${viral.referidos_desde_a1} desde A1`,
+                    ],
+                    [
+                      "YA SON CLIENTE",
+                      String(viral.referidos_convertidos),
+                      "Con su vale A1 emitido",
+                    ],
+                    [
+                      "VENTA A4",
+                      monedaCompacta(Number(viral.ingreso_a4)),
+                      "Generada por referidos",
+                    ],
+                  ] as [string, string, string][]
+                ).map(([etiqueta, valor, nota]) => (
+                  <div key={etiqueta} className="flex flex-col gap-[6px]">
+                    <span className="text-ink/42 text-[9px] font-medium tracking-[0.18em]">
+                      {etiqueta}
+                    </span>
+                    <span className="text-ink text-[26px] leading-none font-semibold">
+                      {valor}
+                    </span>
+                    <span className="text-ink/45 text-[11px]">{nota}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </Tarjeta>
       </section>
 

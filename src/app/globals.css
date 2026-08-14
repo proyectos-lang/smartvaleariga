@@ -28,18 +28,22 @@
      con la entidad, no con su posición: A1 es siempre ámbar aunque quede
      tercero en un ranking.
 
-     Estos tres pasan las seis comprobaciones de color sobre fondo blanco
+     Los cuatro pasan las cinco comprobaciones de color sobre fondo blanco
      (scripts/validate_palette.js): banda de luminosidad, piso de croma,
-     ΔE 19.7 bajo daltonismo, ΔE 25.1 con visión normal y contraste ≥3:1.
-     No sustituir un valor sin volver a validarlos como conjunto. */
+     ΔE 10.7 en el peor par bajo daltonismo —el piso es 8—, ΔE 15.6 con
+     visión normal y contraste ≥3:1.
+     No sustituir un valor sin volver a validarlos como conjunto, y con
+     `--pairs all`: al ser cuatro ya no basta comprobar pares adyacentes. */
   --color-serie-a1: #a17916;
   --color-serie-a2: #215ba3;
   --color-serie-a3: #9e3b24;
+  --color-serie-a4: #17997a;
 
   /* Pasos oscuros de los mismos tonos, para texto sobre su propio lavado. */
   --color-serie-a1-texto: #7a5b0f;
   --color-serie-a2-texto: #1a4a85;
   --color-serie-a3-texto: #7e2e1b;
+  --color-serie-a4-texto: #0c604d;
 
   /* Cromo de las gráficas: retrocede, nunca compite con los datos. */
   --color-rejilla: #e7e3da;

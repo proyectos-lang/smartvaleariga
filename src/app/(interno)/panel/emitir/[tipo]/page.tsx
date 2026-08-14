@@ -5,7 +5,7 @@ import { Tarjeta } from "@/components/ui/tarjeta";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { descuentosVigentes } from "@/lib/datos/configuracion";
 import { listarTiendas } from "@/lib/datos/tiendas";
-import { cupoDe } from "@/lib/datos/vales";
+import { cupoDe, valePorCodigo } from "@/lib/datos/vales";
 import {
   DESCRIPCION_TIPO,
   ETIQUETA_TIPO,
@@ -19,7 +19,7 @@ import { FormularioEmision } from "./formulario";
  * principal es que el cliente se registre solo desde el QR de la tienda.
  * Next da precedencia al segmento estático, así que esta ruta nunca la ve.
  */
-const SLUGS: Record<string, TipoVale> = { a1: "A1", a2: "A2" };
+const SLUGS: Record<string, TipoVale> = { a1: "A1", a2: "A2", a4: "A4" };
 
 export async function generateMetadata({
   params,
@@ -31,12 +31,14 @@ export async function generateMetadata({
 
 export default async function PaginaFormulario({
   params,
+  searchParams,
 }: PageProps<"/panel/emitir/[tipo]">) {
   const { tipo: slug } = await params;
   const tipo = SLUGS[slug.toLowerCase()];
   if (!tipo) notFound();
 
   const sesion = await requerirSesion();
+  const { de } = await searchParams;
 
   const [descuentos, tiendas, cupo] = await Promise.all([
     descuentosVigentes(),
@@ -44,10 +46,44 @@ export default async function PaginaFormulario({
     cupoDe(sesion.usuarioId),
   ]);
 
+  /**
+   * `?de=AR-A4-…` llega de dos sitios y significa lo mismo en los dos: este
+   * vale nace de aquel. En A1 es la conversión del referido —se traen sus
+   * datos ya escritos, que es todo el punto del botón—; en A4 es el código
+   * del vale que le enseñaron, dejado listo si se llegó desde ese vale.
+   */
+  const origen =
+    typeof de === "string" && de.trim() !== ""
+      ? await valePorCodigo(de.trim())
+      : null;
+
+  // Una vendedora solo puede partir de un vale suyo.
+  const visible =
+    origen && (sesion.rol === "admin" || origen.usuario_id === sesion.usuarioId)
+      ? origen
+      : null;
+
+  const prefijado =
+    tipo === "A1" && visible?.tipo === "A4"
+      ? {
+          nombre: visible.portador,
+          telefono: visible.portador_telefono,
+          correo: visible.portador_correo,
+          valeOrigen: visible.codigo,
+        }
+      : tipo === "A4" && (visible?.tipo === "A1" || visible?.tipo === "A2")
+        ? { valeOrigen: visible.codigo }
+        : null;
+
   // Sin cupo no tiene sentido llenar el formulario: se avisa en la pantalla
-  // anterior, que es donde está el mensaje y el contexto. A1 se salta este
-  // control porque no consume bloque.
-  if (tipo !== "A1" && cupo && (cupo.sinRango || cupo.restantes === 0)) {
+  // anterior, que es donde está el mensaje y el contexto.
+  // A1 y A4 llevan secuencia propia de la vendedora y no consumen bloque.
+  if (
+    tipo !== "A1" &&
+    tipo !== "A4" &&
+    cupo &&
+    (cupo.sinRango || cupo.restantes === 0)
+  ) {
     redirect("/panel/emitir");
   }
 
@@ -71,6 +107,7 @@ export default async function PaginaFormulario({
           tarifas={descuentos}
           tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           tiendaPredeterminada={sesion.tiendaId}
+          prefijado={prefijado}
         />
       </Tarjeta>
 
@@ -94,6 +131,23 @@ export default async function PaginaFormulario({
             ))}
           </ol>
         </Tarjeta>
+
+        {tipo === "A4" ? (
+          <Tarjeta className="border-gold/30 bg-gold/6 flex flex-col gap-2 p-5">
+            <span className="text-gold-dark text-[9px] font-medium tracking-[0.2em]">
+              QUÉ HACE DISTINTO AL A4
+            </span>
+            <p className="text-ink/60 m-0 text-[12.5px] leading-relaxed">
+              Este cliente llegó porque alguien le enseñó su vale. Lo que hay
+              que dejar anotado es de quién viene: es lo que después dice qué
+              clientes están trayendo gente.
+            </p>
+            <p className="text-ink/60 m-0 text-[12.5px] leading-relaxed">
+              Cuando compre, desde su vale podrás emitirle un A1 y pasarlo a
+              cliente de la casa.
+            </p>
+          </Tarjeta>
+        ) : null}
 
         {tipo === "A2" ? (
           <Tarjeta className="border-gold/30 bg-gold/6 flex flex-col gap-2 p-5">

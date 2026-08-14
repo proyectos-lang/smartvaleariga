@@ -421,6 +421,152 @@ async function probarAutorregistro() {
   );
 }
 
+async function probarA4Referidos(a2) {
+  console.log("\nA4: el referido y su conversión");
+
+  const a4 = await rpc("fn_emitir_vale", {
+    p_usuario_id: creado.usuarioId,
+    p_tipo: "A4",
+    p_nombre: `Referida ${MARCA}`,
+    p_telefono: "5218112344001",
+    p_vale_origen: a2.codigo,
+  });
+  comprobar(
+    "el código A4 lleva el prefijo de la vendedora",
+    /^AR-A4-V\d{3,}-\d{5}$/.test(a4.codigo),
+    a4.codigo,
+  );
+  comprobar("A4 no consume el bloque", a4.rango_id === null, `rango_id: ${a4.rango_id}`);
+  comprobar(
+    "queda ligado al vale de quien lo refirió",
+    a4.vale_origen_id === a2.id,
+  );
+  comprobar(
+    "toma la tienda de la vendedora si no se indica",
+    a4.tienda_id === creado.tiendaId,
+  );
+
+  const [detalle] = await rest(
+    `vw_vales_detalle?select=referidor,origen_codigo,origen_tipo,convertido&codigo=eq.${a4.codigo}`,
+  );
+  comprobar(
+    "la vista dice quién lo refirió",
+    detalle.origen_codigo === a2.codigo && detalle.origen_tipo === "A2",
+    `${detalle.referidor} · ${detalle.origen_codigo}`,
+  );
+  comprobar("todavía no está convertido", detalle.convertido === false);
+
+  await debeFallar(
+    "un A4 sin referidor se rechaza",
+    rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A4",
+      p_nombre: `Sin origen ${MARCA}`,
+      p_telefono: "5218112344002",
+    }),
+    "SV006",
+  );
+
+  await debeFallar(
+    "un código de referidor inexistente se rechaza",
+    rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A4",
+      p_nombre: `Origen falso ${MARCA}`,
+      p_telefono: "5218112344003",
+      p_vale_origen: "AR-A2-999999",
+    }),
+    "SV009",
+  );
+
+  await debeFallar(
+    "un A4 no puede venir de otro A4",
+    rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A4",
+      p_nombre: `Cadena ${MARCA}`,
+      p_telefono: "5218112344004",
+      p_vale_origen: a4.codigo,
+    }),
+    "SV009",
+  );
+
+  // La conversión: el A1 nace apuntando al A4.
+  const convertido = await rpc("fn_emitir_vale", {
+    p_usuario_id: creado.usuarioId,
+    p_tipo: "A1",
+    p_nombre: `Referida ${MARCA}`,
+    p_telefono: "5218112344001",
+    p_segmento: "A1-30",
+    p_vale_origen: a4.codigo,
+  });
+  comprobar(
+    "el A1 de conversión apunta de vuelta al A4",
+    convertido.vale_origen_id === a4.id,
+    convertido.codigo,
+  );
+
+  const [tras] = await rest(
+    `vw_vales_detalle?select=convertido,referidos,referidos_convertidos&codigo=eq.${a4.codigo}`,
+  );
+  comprobar("el A4 queda marcado como convertido", tras.convertido === true);
+
+  const [origen] = await rest(
+    `vw_vales_detalle?select=referidos&codigo=eq.${a2.codigo}`,
+  );
+  comprobar(
+    "el A2 acumula a la persona que trajo",
+    origen.referidos === 1,
+    `${origen.referidos} referidos`,
+  );
+
+  await debeFallar(
+    "convertir en A1 algo que no es un A4 se rechaza",
+    rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A1",
+      p_nombre: `Mala conversión ${MARCA}`,
+      p_telefono: "5218112344005",
+      p_segmento: "A1-30",
+      p_vale_origen: a2.codigo,
+    }),
+    "SV009",
+  );
+
+  return a4;
+}
+
+async function probarAutorregistroA4(a1) {
+  console.log("\nAutorregistro con código de referidor");
+
+  const [tienda] = await rest(`tiendas?select=token,id&id=eq.${creado.tiendaId}`);
+
+  const vale = await rpc("fn_autorregistro_a3", {
+    p_token: tienda.token,
+    p_nombre: `Referido QR ${MARCA}`,
+    p_telefono: "5218112399010",
+    p_codigo_referidor: a1.codigo,
+  });
+  comprobar(
+    "con código de referidor el autorregistro sale A4",
+    vale.tipo === "A4" && /^AR-A4-T\d{3,}-\d{5}$/.test(vale.codigo),
+    vale.codigo,
+  );
+  comprobar("queda ligado al referidor", vale.vale_origen_id === a1.id);
+  comprobar("sigue sin vendedora", vale.usuario_id === null);
+
+  await debeFallar(
+    "un código de referidor inválido se rechaza también aquí",
+    rpc("fn_autorregistro_a3", {
+      p_token: tienda.token,
+      p_nombre: `Malo ${MARCA}`,
+      p_telefono: "5218112399011",
+      p_codigo_referidor: "AR-A1-000000",
+    }),
+    "SV009",
+  );
+}
+
 async function probarAgotamiento() {
   console.log("\nAgotamiento del rango");
 
@@ -527,10 +673,12 @@ console.log(`\nARIGA SMART VALE · pruebas de negocio\n${url}`);
 
 try {
   await preparar();
-  const { a1 } = await probarEmision();
+  const { a1, a2 } = await probarEmision();
   await probarRedencion(a1);
   await probarA1SinLimite();
   await probarAutorregistro();
+  await probarA4Referidos(a2);
+  await probarAutorregistroA4(a1);
   await probarAgotamiento();
   await probarConcurrencia();
 } catch (e) {

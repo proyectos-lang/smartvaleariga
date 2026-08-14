@@ -19,6 +19,16 @@ import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
 
 const SEGMENTOS = ["A1-30", "A1-60", "A1-90", "A1-VIP"] as const;
 
+/** Código del vale de quien refirió. Se acepta en cualquier caja y forma. */
+const CodigoVale = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine(
+    (v) => /^AR-A[1-4]-[A-Z0-9-]+$/.test(v),
+    "Ese no parece un código de vale. Debe empezar por AR-.",
+  );
+
 const Comun = {
   nombre: z
     .string()
@@ -45,6 +55,12 @@ const Comun = {
 const EsquemaA1 = z.object({
   ...Comun,
   segmento: z.enum(SEGMENTOS, { message: "Elige la clasificación del cliente." }),
+  // Solo cuando el A1 nace de convertir un A4: guarda de quién venía.
+  valeOrigen: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.union([z.null(), CodigoVale])),
 });
 
 const EsquemaA2 = z.object({
@@ -62,6 +78,19 @@ const EsquemaA3 = z.object({
     .number()
     .int()
     .positive("Elige el punto de venta."),
+});
+
+/** El referido: lo que lo define es de qué vale viene. */
+const EsquemaA4 = z.object({
+  ...Comun,
+  tiendaId: z.coerce
+    .number()
+    .int()
+    .positive("Elige el punto de venta."),
+  valeOrigen: CodigoVale.refine(
+    (v) => v !== "",
+    "Escribe el código del vale que le enseñaron.",
+  ),
 });
 
 export type EstadoEmision = {
@@ -86,7 +115,7 @@ export async function emitirVale(
   const sesion = await requerirSesion();
   const tipo = String(formData.get("tipo") ?? "") as TipoVale;
 
-  if (!["A1", "A2", "A3"].includes(tipo)) {
+  if (!["A1", "A2", "A3", "A4"].includes(tipo)) {
     return { error: "Tipo de vale inválido." };
   }
 
@@ -97,11 +126,13 @@ export async function emitirVale(
     segmento: formData.get("segmento") ?? undefined,
     origen: formData.get("origen") ?? "",
     tiendaId: formData.get("tiendaId") ?? "",
+    valeOrigen: formData.get("valeOrigen") ?? "",
   };
 
   let segmento: SegmentoA1 | null = null;
   let origen: string | null = null;
   let tiendaId: number | null = null;
+  let valeOrigen: string | null = null;
   let datos: { nombre: string; telefono: string; correo: string | null };
 
   if (tipo === "A1") {
@@ -109,16 +140,23 @@ export async function emitirVale(
     if (!r.success) return primerError(r.error);
     datos = r.data;
     segmento = r.data.segmento;
+    valeOrigen = r.data.valeOrigen;
   } else if (tipo === "A2") {
     const r = EsquemaA2.safeParse(bruto);
     if (!r.success) return primerError(r.error);
     datos = r.data;
     origen = r.data.origen;
-  } else {
+  } else if (tipo === "A3") {
     const r = EsquemaA3.safeParse(bruto);
     if (!r.success) return primerError(r.error);
     datos = r.data;
     tiendaId = r.data.tiendaId;
+  } else {
+    const r = EsquemaA4.safeParse(bruto);
+    if (!r.success) return primerError(r.error);
+    datos = r.data;
+    tiendaId = r.data.tiendaId;
+    valeOrigen = r.data.valeOrigen;
   }
 
   const { data, error } = await db().rpc("fn_emitir_vale", {
@@ -130,9 +168,15 @@ export async function emitirVale(
     p_segmento: segmento,
     p_origen: origen,
     p_tienda_id: tiendaId,
+    p_vale_origen: valeOrigen,
   });
 
   if (error) {
+    // SV009 es el vale del referidor: el mensaje dice exactamente qué pasa
+    // con ese código, y hay que marcar el campo.
+    if (error.code === "SV009") {
+      return { error: error.message, campos: { valeOrigen: "Código inválido" } };
+    }
     // SV001 y SV006 traen mensajes escritos para la vendedora; el resto no.
     if (error.code === "SV001" || error.code === "SV006") {
       return { error: error.message };

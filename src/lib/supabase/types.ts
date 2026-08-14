@@ -27,6 +27,7 @@ export type Database = {
           /** QR fijo de la tienda: el que el cliente escanea para registrarse. */
           token: string;
           correlativo_a3: number;
+          correlativo_a4: number;
           autorregistro: boolean;
           fecha_creacion: string;
           fecha_actualizacion: string | null;
@@ -175,6 +176,8 @@ export type Database = {
           descuento_pct: number;
           descuento_oro_pct: number;
           descuento_plata_pct: number;
+          /** El vale que trajo a este cliente. Obligatorio en A4. */
+          vale_origen_id: number | null;
           fecha_emision: string;
           fecha_vencimiento: string;
           anulado: boolean;
@@ -271,6 +274,18 @@ export type Database = {
           descuento_plata_pct: number;
           ingreso_oro: number;
           ingreso_plata: number;
+
+          /** Cadena de referidos. */
+          vale_origen_id: number | null;
+          origen_codigo: string | null;
+          origen_tipo: TipoVale | null;
+          /** Nombre de quien refirió: el portador del vale de origen. */
+          referidor: string | null;
+          /** Cuántas personas llegaron enseñando ESTE vale. */
+          referidos: number;
+          referidos_convertidos: number;
+          /** Un A4 convertido ya tiene su vale A1 emitido. */
+          convertido: boolean;
         };
         Relationships: [];
       };
@@ -357,6 +372,8 @@ export type Database = {
 
           ultima_emision: string | null;
           ultima_venta: string | null;
+
+          vales_a4: number;
         };
         Relationships: [];
       };
@@ -384,6 +401,14 @@ export type Database = {
           alcance_maximo: number | null;
           vales_compartidos: number;
           ingreso_a2: number;
+
+          /** Referidos que se presentaron en tienda con el vale de alguien. */
+          referidos_a4: number;
+          /** De esos, cuántos ya tienen su A1 emitido. */
+          referidos_convertidos: number;
+          ingreso_a4: number;
+          referidos_desde_a2: number;
+          referidos_desde_a1: number;
         };
         Relationships: [];
       };
@@ -410,6 +435,8 @@ export type Database = {
           p_segmento?: SegmentoA1 | null;
           p_origen?: string | null;
           p_tienda_id?: number | null;
+          /** Código del vale del referidor. Obligatorio en A4. */
+          p_vale_origen?: string | null;
         };
         Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
       };
@@ -433,6 +460,8 @@ export type Database = {
           total_redenciones: number;
           descuento_oro_pct: number;
           descuento_plata_pct: number;
+          referidor: string | null;
+          origen_codigo: string | null;
         }[];
       };
 
@@ -464,6 +493,8 @@ export type Database = {
           p_nombre: string;
           p_telefono: string;
           p_correo?: string | null;
+          /** Si viene, el vale sale A4 ligado a quien lo refirió. */
+          p_codigo_referidor?: string | null;
         };
         Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
       };
@@ -485,6 +516,8 @@ export type Database = {
           total_redenciones: number;
           descuento_oro_pct: number;
           descuento_plata_pct: number;
+          referidor: string | null;
+          origen_codigo: string | null;
         }[];
       };
 
@@ -559,7 +592,7 @@ export type Database = {
 
 /* ── Alias de conveniencia ──────────────────────────────────────────────── */
 
-export type TipoVale = "A1" | "A2" | "A3";
+export type TipoVale = "A1" | "A2" | "A3" | "A4";
 export type SegmentoA1 = "A1-30" | "A1-60" | "A1-90" | "A1-VIP";
 export type RolUsuario = "admin" | "vendedora";
 
@@ -603,12 +636,14 @@ export const ETIQUETA_TIPO: Record<TipoVale, string> = {
   A1: "Cliente existente",
   A2: "Empleados y referidos",
   A3: "Visitante de tienda",
+  A4: "Referido de un cliente",
 };
 
 export const DESCRIPCION_TIPO: Record<TipoVale, string> = {
   A1: "Llamada a la base histórica de la marca",
   A2: "Prospección en frío, reutilizable y compartible",
   A3: "Registro en el punto de venta",
+  A4: "Llegó a tienda porque alguien le enseñó su vale",
 };
 
 export const ETIQUETA_SEGMENTO: Record<SegmentoA1, string> = {

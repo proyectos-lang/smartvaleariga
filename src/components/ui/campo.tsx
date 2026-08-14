@@ -34,10 +34,18 @@ export function Rotulo({
 export type CampoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiqueta?: string;
   error?: string;
+  /** Nota bajo el campo. El error la sustituye cuando lo hay. */
+  ayuda?: ReactNode;
 };
 
 /** Campo de texto con rótulo y estado de error. */
-export function Campo({ etiqueta, error, className, ...props }: CampoProps) {
+export function Campo({
+  etiqueta,
+  error,
+  ayuda,
+  className,
+  ...props
+}: CampoProps) {
   return (
     <label className="flex flex-col gap-[7px]">
       {etiqueta ? <Rotulo>{etiqueta}</Rotulo> : null}
@@ -52,6 +60,9 @@ export function Campo({ etiqueta, error, className, ...props }: CampoProps) {
         )}
         {...props}
       />
+      {ayuda && !error ? (
+        <span className="text-ink/40 text-[11px] leading-relaxed">{ayuda}</span>
+      ) : null}
       {error ? <span className="text-clay text-[11px]">{error}</span> : null}
     </label>
   );

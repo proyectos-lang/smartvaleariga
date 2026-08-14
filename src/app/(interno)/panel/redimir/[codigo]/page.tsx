@@ -136,6 +136,9 @@ export default async function PaginaValidacion({
             ...(vale.segmento
               ? [["CLASIFICACIÓN", ETIQUETA_SEGMENTO[vale.segmento]]]
               : []),
+            ...(vale.referidor
+              ? [["LO REFIRIÓ", `${vale.referidor} · ${vale.origen_codigo}`]]
+              : []),
             ["EMITIDO POR", vale.emisora],
             ["EMISIÓN", fecha(vale.fecha_emision)],
             [

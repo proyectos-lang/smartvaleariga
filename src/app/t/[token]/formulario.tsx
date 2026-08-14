@@ -35,6 +35,9 @@ export function FormularioRegistro({
   return (
     <form action={accion} className="flex flex-col gap-4">
       <input type="hidden" name="token" value={token} />
+      {/* La clave viaja aparte y el servidor la antepone: guardar el número
+          sin ella dejaba contactos duplicados y enlaces de WhatsApp rotos. */}
+      <input type="hidden" name="clave" value={clavePais} />
 
       <label className="flex flex-col gap-2">
         <span className="text-bone/50 text-[11px] font-medium tracking-[0.16em]">
@@ -76,6 +79,31 @@ export function FormularioRegistro({
         ) : (
           <span className="text-bone/35 text-[12px]">
             Ahí te llegará tu vale por WhatsApp.
+          </span>
+        )}
+      </label>
+
+      {/* Lo que convierte el registro en A4. Va después del teléfono porque
+          la mayoría llega sin código y no debe tropezar con esto. */}
+      <label className="flex flex-col gap-2">
+        <span className="text-bone/50 text-[11px] font-medium tracking-[0.16em]">
+          ¿ALGUIEN TE ENSEÑÓ SU VALE? (OPCIONAL)
+        </span>
+        <input
+          name="codigoReferidor"
+          placeholder="AR-A2-000045"
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          className={`${clases} font-mono`}
+        />
+        {campo("codigoReferidor") ? (
+          <span className="text-clay text-[12px]">
+            {campo("codigoReferidor")}
+          </span>
+        ) : (
+          <span className="text-bone/35 text-[12px]">
+            Escribe el código de su vale y lo registramos como quien te trajo.
           </span>
         )}
       </label>

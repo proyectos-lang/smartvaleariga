@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 /**
  * Distintivo de la puerta de entrada del vale.
  *
- * Usa los mismos tres colores que las gráficas del tablero: quien aprende
+ * Usa los mismos cuatro colores que las gráficas del tablero: quien aprende
  * que A2 es azul en un listado lo reconoce igual en un reporte. El color va
  * con la entidad, nunca con su posición.
  *
@@ -17,6 +17,7 @@ const ESTILOS: Record<TipoVale, string> = {
   A1: "bg-[color-mix(in_srgb,var(--color-serie-a1)_14%,transparent)] text-[var(--color-serie-a1-texto)]",
   A2: "bg-[color-mix(in_srgb,var(--color-serie-a2)_14%,transparent)] text-[var(--color-serie-a2-texto)]",
   A3: "bg-[color-mix(in_srgb,var(--color-serie-a3)_14%,transparent)] text-[var(--color-serie-a3-texto)]",
+  A4: "bg-[color-mix(in_srgb,var(--color-serie-a4)_14%,transparent)] text-[var(--color-serie-a4-texto)]",
 };
 
 export function ChipTipo({

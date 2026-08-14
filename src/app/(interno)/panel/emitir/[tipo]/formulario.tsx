@@ -15,21 +15,32 @@ export type OpcionTienda = { id: number; nombre: string };
 
 const SEGMENTOS: SegmentoA1[] = ["A1-30", "A1-60", "A1-90", "A1-VIP"];
 
+export type Prefijado = {
+  nombre?: string;
+  telefono?: string;
+  correo?: string | null;
+  /** Código del vale del que nace este. */
+  valeOrigen?: string;
+} | null;
+
 /**
- * Formulario de emisión. Los tres tipos comparten nombre, teléfono y correo;
- * lo que cambia es el campo propio de cada puerta de entrada.
+ * Formulario de emisión. Los cuatro tipos comparten nombre, teléfono y
+ * correo; lo que cambia es el campo propio de cada puerta de entrada.
  */
 export function FormularioEmision({
   tipo,
   tarifas,
   tiendas,
   tiendaPredeterminada,
+  prefijado = null,
 }: {
   tipo: TipoVale;
   /** Las mismas para todos los tipos: lo que diferencia es el material. */
   tarifas: { oro: number; plata: number };
   tiendas: OpcionTienda[];
   tiendaPredeterminada: number | null;
+  /** Datos que llegan ya resueltos: la conversión de un A4 en A1. */
+  prefijado?: Prefijado;
 }) {
   const [estado, accion, enviando] = useActionState<EstadoEmision, FormData>(
     emitirVale,
@@ -50,16 +61,50 @@ export function FormularioEmision({
         </span>
       </div>
 
+      {/* La conversión de un referido: los datos ya los dio al registrarse,
+          volver a pedirlos sería hacerle repetir el trámite. */}
+      {tipo === "A1" && prefijado?.valeOrigen ? (
+        <p className="border-gold/30 bg-gold/6 text-gold-deep rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">
+          Convirtiendo el vale{" "}
+          <span className="font-mono">{prefijado.valeOrigen}</span> en cliente.
+          Sus datos ya vienen puestos; solo falta la clasificación.
+        </p>
+      ) : null}
+
       <Campo
         etiqueta="NOMBRE COMPLETO"
         name="nombre"
         placeholder="Nombre y apellidos"
         autoComplete="name"
+        defaultValue={prefijado?.nombre}
         error={campo("nombre")}
         required
       />
 
-      <CampoTelefono error={campo("telefono")} />
+      <CampoTelefono
+        error={campo("telefono")}
+        defaultValue={prefijado?.telefono}
+      />
+
+      {/* En A4 es obligatorio: sin referidor sería un A3. En A1 viaja oculto
+          y solo cuando el vale nace de convertir un referido. */}
+      {tipo === "A4" ? (
+        <Campo
+          etiqueta="CÓDIGO DEL VALE QUE LE ENSEÑARON"
+          name="valeOrigen"
+          placeholder="AR-A2-000045"
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          defaultValue={prefijado?.valeOrigen}
+          ayuda="El vale de quien lo mandó. Debe ser un A1 o un A2."
+          error={campo("valeOrigen")}
+          className="font-mono"
+          required
+        />
+      ) : tipo === "A1" && prefijado?.valeOrigen ? (
+        <input type="hidden" name="valeOrigen" value={prefijado.valeOrigen} />
+      ) : null}
 
       {tipo === "A1" ? (
         <Selector
@@ -93,12 +138,12 @@ export function FormularioEmision({
         />
       ) : null}
 
-      {tipo === "A3" ? (
+      {tipo === "A3" || tipo === "A4" ? (
         tiendas.length === 0 ? (
           <p className="border-clay/25 bg-clay/6 text-clay rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">
             No hay puntos de venta registrados. Un administrador debe crearlos
             en <Link href="/panel/tiendas" className="underline">Tiendas</Link>{" "}
-            antes de emitir vales A3.
+            antes de emitir vales {tipo}.
           </p>
         ) : (
           <Selector
@@ -126,6 +171,7 @@ export function FormularioEmision({
         type="email"
         placeholder="cliente@correo.com"
         autoComplete="email"
+        defaultValue={prefijado?.correo ?? undefined}
         error={campo("correo")}
       />
 
@@ -147,7 +193,9 @@ export function FormularioEmision({
         </Link>
         <Boton
           type="submit"
-          disabled={enviando || (tipo === "A3" && tiendas.length === 0)}
+          disabled={
+            enviando || (tiendas.length === 0 && (tipo === "A3" || tipo === "A4"))
+          }
           className="flex-1 py-[15px]"
         >
           {enviando ? "GENERANDO…" : "GENERAR VALE"}

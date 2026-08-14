@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Building2, PhoneCall, Store } from "lucide-react";
+import { Building2, PhoneCall, Store, UserPlus } from "lucide-react";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { Tarifas } from "@/components/vales/tarifas";
@@ -11,10 +11,10 @@ import { cupoDe } from "@/lib/datos/vales";
 export const metadata: Metadata = { title: "Emitir vale" };
 
 /**
- * Las tres puertas de entrada, cada una a un toque.
+ * Las cuatro puertas de entrada, cada una a un toque.
  *
- * Es la pantalla que más se usa desde el teléfono, así que los tres accesos
- * son bloques grandes y no una lista: se pulsan sin apuntar.
+ * Es la pantalla que más se usa desde el teléfono, así que los accesos son
+ * bloques grandes y no una lista: se pulsan sin apuntar.
  */
 
 const PUERTAS = [
@@ -43,6 +43,15 @@ const PUERTAS = [
       "El cliente escanea el QR de la tienda y se registra solo, o capturas tú sus datos.",
     Icono: Store,
   },
+  {
+    tipo: "A4" as const,
+    slug: "a4",
+    titulo: "Referido de un cliente",
+    descripcion: "Llegó porque le enseñaron un vale",
+    detalle:
+      "Anotas el código del vale de quien lo mandó. Cuando compre, lo conviertes en cliente.",
+    Icono: UserPlus,
+  },
 ];
 
 export default async function PaginaEmitir() {
@@ -70,7 +79,7 @@ export default async function PaginaEmitir() {
               ? "Los bloques de correlativos son de las vendedoras. Si quieres emitir A2 o A3 desde esta cuenta, asígnate un rango en Rangos."
               : "Todavía no tienes un rango de vales asignado. Contacta al administrador para que te asigne un bloque."}{" "}
           <strong className="font-medium">
-            Los vales A1 no se ven afectados: no consumen bloque.
+            Los vales A1 y A4 no se ven afectados: no consumen bloque.
           </strong>
         </p>
       ) : null}
@@ -81,14 +90,15 @@ export default async function PaginaEmitir() {
         </h2>
         <p className="text-ink/50 m-0 max-w-prose text-[13px] leading-relaxed">
           Elige la puerta de entrada. El descuento y la vigencia se aplican
-          solos según el tipo; tú solo capturas los datos del cliente.
+          solos; tú solo capturas los datos del cliente. Lo que cambia entre
+          puertas es de dónde viene, que es lo que después se mide.
         </p>
       </div>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {PUERTAS.map(({ tipo, slug, titulo, descripcion, detalle, Icono }) => {
-          // A1 nunca se bloquea: su numeración es propia y sin techo.
-          const bloqueada = sinCupo && tipo !== "A1";
+          // A1 y A4 nunca se bloquean: llevan secuencia propia, sin techo.
+          const bloqueada = sinCupo && tipo !== "A1" && tipo !== "A4";
 
           const contenido = (
             <>

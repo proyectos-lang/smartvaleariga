@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, UserPlus } from "lucide-react";
 
 import { ChipEstado } from "@/components/ui/chip-estado";
 import { Tarjeta } from "@/components/ui/tarjeta";
@@ -45,6 +45,12 @@ export default async function PaginaVale({
       ? ([["CLASIFICACIÓN", ETIQUETA_SEGMENTO[vale.segmento]]] as [string, string][])
       : []),
     ...(vale.origen ? ([["ORIGEN", vale.origen]] as [string, string][]) : []),
+    // De quién viene: es el dato que da sentido a la puerta A4.
+    ...(vale.referidor
+      ? ([
+          ["LO REFIRIÓ", `${vale.referidor} · ${vale.origen_codigo}`],
+        ] as [string, string][])
+      : []),
     ...(vale.tienda ? ([["PUNTO DE VENTA", vale.tienda]] as [string, string][]) : []),
     ["PORTADOR", vale.portador],
     ["TELÉFONO", `+${vale.portador_telefono}`],
@@ -72,6 +78,51 @@ export default async function PaginaVale({
           Vales
         </Link>
       </div>
+
+      {/* El referido ya compró: cerrar el ciclo es emitirle su A1. Aparece
+          solo cuando tiene compra registrada, que es cuando deja de ser un
+          prospecto y pasa a ser cliente. */}
+      {vale.tipo === "A4" && vale.total_redenciones > 0 && !vale.convertido ? (
+        <div className="border-gold/35 bg-gold/8 rounded-card flex flex-wrap items-center gap-x-4 gap-y-3 border px-5 py-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+            <span className="text-gold-deep text-[13px] font-medium">
+              {vale.portador.split(" ")[0]} ya compró
+            </span>
+            <span className="text-ink/55 text-[12px] leading-relaxed">
+              Conviértela en cliente de la casa: se le emite su vale A1 con
+              los datos que ya dio.
+            </span>
+          </div>
+          <Link
+            href={`/panel/emitir/a1?de=${encodeURIComponent(vale.codigo)}`}
+            className="bg-ink text-gold-light rounded-field tracking-action flex shrink-0 items-center gap-2 px-5 py-3 text-[11px] font-semibold transition-opacity hover:opacity-90"
+          >
+            <UserPlus size={15} />
+            EMITIR SU VALE A1
+          </Link>
+        </div>
+      ) : null}
+
+      {vale.tipo === "A4" && vale.convertido ? (
+        <p className="border-ink/10 bg-ink/2 text-ink/55 rounded-card m-0 flex items-center gap-2 border px-4 py-3 text-[12.5px]">
+          <Check size={15} className="text-gold-deep" />
+          Este referido ya es cliente: tiene su vale A1 emitido.
+        </p>
+      ) : null}
+
+      {/* Cuántas personas ha traído este vale. Es lo que mide de verdad el
+          boca en boca: no cuántas veces se usó, sino a cuántos arrastró. */}
+      {vale.referidos > 0 ? (
+        <p className="border-ink/10 bg-ink/2 text-ink/55 rounded-card m-0 border px-4 py-3 text-[12.5px] leading-relaxed">
+          Con este vale han llegado{" "}
+          <strong className="text-ink font-semibold">{vale.referidos}</strong>{" "}
+          {vale.referidos === 1 ? "persona" : "personas"} a tienda
+          {vale.referidos_convertidos > 0
+            ? `, ${vale.referidos_convertidos} ya ${vale.referidos_convertidos === 1 ? "convertida" : "convertidas"} en cliente`
+            : ""}
+          .
+        </p>
+      ) : null}
 
       {nuevo ? (
         <p className="border-gold/35 bg-gold/8 text-gold-deep rounded-card m-0 flex items-center gap-2 border px-4 py-3 text-[13px]">

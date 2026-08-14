@@ -157,6 +157,8 @@ export function DesempenoVendedoras({
                         {f.vales_a2}
                         <PuntoTipo tipo="A3" className="size-[6px]" />
                         {f.vales_a3}
+                        <PuntoTipo tipo="A4" className="size-[6px]" />
+                        {f.vales_a4}
                       </span>
                     ) : null}
                   </span>
@@ -264,7 +266,8 @@ export function DesempenoVendedoras({
         vales emitidos son el desglose por puerta de entrada:{" "}
         <PuntoTipo tipo="A1" className="size-[6px]" /> A1{" "}
         <PuntoTipo tipo="A2" className="size-[6px]" /> A2{" "}
-        <PuntoTipo tipo="A3" className="size-[6px]" /> A3. El cupo en rojo
+        <PuntoTipo tipo="A3" className="size-[6px]" /> A3{" "}
+        <PuntoTipo tipo="A4" className="size-[6px]" /> A4. El cupo en rojo
         significa que esa vendedora ya no puede emitir hasta que se le asigne
         un bloque nuevo.
       </p>
