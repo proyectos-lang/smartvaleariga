@@ -5,14 +5,21 @@ import { Vacio } from "@/components/ui/vacio";
 import { requerirAdmin } from "@/lib/auth/guardas";
 import { alternarTienda } from "@/lib/acciones/tiendas";
 import { listarTiendas } from "@/lib/datos/tiendas";
+import { descuentosVigentes } from "@/lib/datos/configuracion";
+import { urlAutorregistro } from "@/lib/compartir";
 
 import { FormularioTienda } from "./formulario";
+import { QrTienda } from "./qr-tienda";
 
 export const metadata: Metadata = { title: "Puntos de venta" };
 
 export default async function PaginaTiendas() {
   await requerirAdmin();
-  const tiendas = await listarTiendas(false);
+  const [tiendas, descuentos] = await Promise.all([
+    listarTiendas(false),
+    descuentosVigentes(),
+  ]);
+  const descuentoA3 = descuentos.A3;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -54,16 +61,26 @@ export default async function PaginaTiendas() {
                   ) : null}
                 </span>
 
-                <form action={alternarTienda}>
-                  <input type="hidden" name="id" value={t.id} />
-                  <input type="hidden" name="activo" value={String(t.activo)} />
-                  <button
-                    type="submit"
-                    className="border-ink/14 text-ink/55 hover:border-gold hover:text-ink rounded-field cursor-pointer border px-3 py-[6px] text-[11px] transition-colors"
-                  >
-                    {t.activo ? "Desactivar" : "Activar"}
-                  </button>
-                </form>
+                <span className="flex items-center gap-2">
+                  {t.activo ? (
+                    <QrTienda
+                      nombre={t.nombre}
+                      url={urlAutorregistro(t.token)}
+                      descuento={descuentoA3}
+                    />
+                  ) : null}
+
+                  <form action={alternarTienda}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <input type="hidden" name="activo" value={String(t.activo)} />
+                    <button
+                      type="submit"
+                      className="border-ink/14 text-ink/55 hover:border-gold hover:text-ink rounded-field cursor-pointer border px-3 py-[6px] text-[11px] transition-colors"
+                    >
+                      {t.activo ? "Desactivar" : "Activar"}
+                    </button>
+                  </form>
+                </span>
               </li>
             ))}
           </ul>

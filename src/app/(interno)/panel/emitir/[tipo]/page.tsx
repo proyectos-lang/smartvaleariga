@@ -40,8 +40,9 @@ export default async function PaginaFormulario({
   ]);
 
   // Sin cupo no tiene sentido llenar el formulario: se avisa en la pantalla
-  // anterior, que es donde está el mensaje y el contexto.
-  if (cupo && (cupo.sinRango || cupo.restantes === 0)) {
+  // anterior, que es donde está el mensaje y el contexto. A1 se salta este
+  // control porque no consume bloque.
+  if (tipo !== "A1" && cupo && (cupo.sinRango || cupo.restantes === 0)) {
     redirect("/panel/emitir");
   }
 

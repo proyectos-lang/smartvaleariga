@@ -68,6 +68,15 @@ export function urlTarjetaVale(token: string, descargar = false) {
   return `/api/v/${t}/imagen?formato=tarjeta${descargar ? "&descargar=1" : ""}`;
 }
 
+/**
+ * QR fijo de la tienda: lo que el cliente escanea en el mostrador para
+ * registrarse solo. A diferencia del enlace de un vale, este no cambia
+ * nunca: se imprime una vez y se deja puesto.
+ */
+export function urlAutorregistro(token: string, base = baseSitio()) {
+  return new URL(`/t/${encodeURIComponent(token)}`, base).toString();
+}
+
 export function urlPdfVale(codigo: string, descargar = false) {
   return `/api/vales/${encodeURIComponent(codigo)}/pdf${descargar ? "?descargar=1" : ""}`;
 }

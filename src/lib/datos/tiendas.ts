@@ -14,6 +14,25 @@ export async function listarTiendas(soloActivas = true): Promise<Tienda[]> {
   return data ?? [];
 }
 
+/**
+ * Tienda por su token público. Es como llega el cliente que escanea el QR
+ * fijo del mostrador, así que no exige sesión ni acepta el id.
+ */
+export async function tiendaPorToken(token: string): Promise<Tienda | null> {
+  const limpio = token.trim();
+  if (limpio.length < 16) return null;
+
+  const { data, error } = await db()
+    .from("tiendas")
+    .select("*")
+    .eq("token", limpio)
+    .eq("activo", true)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function tiendaPorId(id: number): Promise<Tienda | null> {
   const { data, error } = await db()
     .from("tiendas")

@@ -33,7 +33,7 @@ const RUTAS_PUBLICAS = ["/login"];
  * separarlo por la forma de la URL evita que una ruta nueva quede abierta
  * por descuido.
  */
-const PREFIJOS_PUBLICOS = ["/v/", "/api/v/", "/api/qr"];
+const PREFIJOS_PUBLICOS = ["/v/", "/api/v/", "/t/", "/api/qr"];
 
 function esPublica(pathname: string) {
   return (

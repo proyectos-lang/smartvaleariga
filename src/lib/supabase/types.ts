@@ -24,6 +24,10 @@ export type Database = {
           direccion: string | null;
           telefono: string | null;
           activo: boolean;
+          /** QR fijo de la tienda: el que el cliente escanea para registrarse. */
+          token: string;
+          correlativo_a3: number;
+          autorregistro: boolean;
           fecha_creacion: string;
           fecha_actualizacion: string | null;
         };
@@ -38,6 +42,7 @@ export type Database = {
           direccion?: string | null;
           telefono?: string | null;
           activo?: boolean;
+          autorregistro?: boolean;
         };
         Relationships: [];
       };
@@ -159,9 +164,11 @@ export type Database = {
           token: string;
           tipo: TipoVale;
           correlativo: number;
-          usuario_id: number;
-          rango_id: number;
+          /** Nulo en los vales de autorregistro: los emite la tienda. */
+          usuario_id: number | null;
+          rango_id: number | null;
           contacto_id: number;
+          autorregistro: boolean;
           segmento: SegmentoA1 | null;
           origen: string | null;
           tienda_id: number | null;
@@ -240,8 +247,10 @@ export type Database = {
           estado: EstadoVale;
           /** Negativo si ya venció. */
           dias_restantes: number;
-          usuario_id: number;
-          emisora: string;
+          /** Nulo en autorregistro. */
+          usuario_id: number | null;
+          emisora: string | null;
+          autorregistro: boolean;
           contacto_id: number;
           portador: string;
           portador_telefono: string;
@@ -431,6 +440,16 @@ export type Database = {
           p_referido_por?: string | null;
         };
         Returns: Database["smartvale"]["Tables"]["redenciones"]["Row"];
+      };
+
+      fn_autorregistro_a3: {
+        Args: {
+          p_token: string;
+          p_nombre: string;
+          p_telefono: string;
+          p_correo?: string | null;
+        };
+        Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
       };
 
       fn_vales_por_vencer: {

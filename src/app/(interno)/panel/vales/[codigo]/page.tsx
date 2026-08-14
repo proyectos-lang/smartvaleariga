@@ -51,7 +51,12 @@ export default async function PaginaVale({
     ...(vale.portador_correo
       ? ([["CORREO", vale.portador_correo]] as [string, string][])
       : []),
-    ["EMITIDO POR", vale.emisora],
+    [
+      "EMITIDO POR",
+      // Los vales de autorregistro no tienen vendedora: los crea el propio
+      // cliente desde el QR del mostrador.
+      vale.emisora ?? `Autorregistro${vale.tienda ? ` · ${vale.tienda}` : ""}`,
+    ],
     ["EMISIÓN", fechaHora(vale.fecha_emision)],
     ["VENCIMIENTO", fecha(vale.fecha_vencimiento)],
   ];

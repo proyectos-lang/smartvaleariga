@@ -53,7 +53,7 @@ export async function GET(
     emision: fecha(vale.fecha_emision),
     vigencia: fecha(vale.fecha_vencimiento),
     estado: vale.estado,
-    emisora: vale.emisora,
+    emisora: vale.emisora ?? "Autorregistro",
     tienda: vale.tienda,
     qrDataUrl: await qrDataUrl(enlace, { tamano: 512 }),
     urlPublica: enlace,

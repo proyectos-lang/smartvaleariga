@@ -54,6 +54,8 @@ export default async function PaginaEmitir() {
     cupoDe(sesion.usuarioId),
   ]);
 
+  // A1 ya no consume bloque: llamar a la base histórica no reparte nada
+  // numerado. El cupo solo frena A2 y A3.
   const sinCupo = cupo !== null && (cupo.sinRango || cupo.restantes === 0);
 
   const descuentoDe = (tipo: "A1" | "A2" | "A3") =>
@@ -68,8 +70,11 @@ export default async function PaginaEmitir() {
           {!cupo.sinRango
             ? "Ha alcanzado el límite de su rango asignado. Contacte al administrador para asignar un nuevo bloque."
             : sesion.rol === "admin"
-              ? "Los vales los emiten las vendedoras, cada una desde su propio bloque de correlativos. Si quieres emitir desde esta cuenta, asígnate un rango en Rangos."
-              : "Todavía no tienes un rango de vales asignado. Contacta al administrador para que te asigne un bloque."}
+              ? "Los bloques de correlativos son de las vendedoras. Si quieres emitir A2 o A3 desde esta cuenta, asígnate un rango en Rangos."
+              : "Todavía no tienes un rango de vales asignado. Contacta al administrador para que te asigne un bloque."}{" "}
+          <strong className="font-medium">
+            Los vales A1 no se ven afectados: no consumen bloque.
+          </strong>
         </p>
       ) : null}
 
@@ -85,12 +90,15 @@ export default async function PaginaEmitir() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         {PUERTAS.map(({ tipo, slug, titulo, descripcion, detalle, Icono }) => {
+          // A1 nunca se bloquea: su numeración es propia y sin techo.
+          const bloqueada = sinCupo && tipo !== "A1";
+
           const contenido = (
             <>
               <div className="flex items-start justify-between gap-3">
                 <span
                   className={
-                    sinCupo
+                    bloqueada
                       ? "border-ink/15 text-ink/30 flex size-12 items-center justify-center rounded-full border"
                       : "border-gold/45 text-gold-dark group-hover:bg-gold/10 flex size-12 items-center justify-center rounded-full border transition-colors"
                   }
@@ -129,7 +137,7 @@ export default async function PaginaEmitir() {
           const clases =
             "group rounded-card flex min-h-[230px] flex-col gap-4 border p-6 text-left transition-all";
 
-          return sinCupo ? (
+          return bloqueada ? (
             <div
               key={tipo}
               aria-disabled

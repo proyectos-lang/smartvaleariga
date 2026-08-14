@@ -6,7 +6,14 @@
  * en cambio, necesita el código: aquí se extrae de las dos formas.
  */
 
-const PATRON = /AR-A[123]-\d{6}/i;
+/**
+ * Tres formas conviven, y las tres son válidas:
+ *
+ *   AR-A2-000125        del bloque de la vendedora (A2 y A3 repartidos)
+ *   AR-A1-V012-00045    secuencia propia de la vendedora, sin techo
+ *   AR-A3-T003-00012    secuencia propia de la tienda (autorregistro)
+ */
+const PATRON = /AR-A[123]-(?:[VT]\d{2,5}-)?\d{5,6}/i;
 
 /** Formato canónico: `AR-A1-000045`. */
 export function normalizarCodigo(valor: string) {
@@ -25,10 +32,14 @@ export function extraerCodigo(texto: string): string | null {
   const encontrado = PATRON.exec(limpio);
   if (encontrado) return normalizarCodigo(encontrado[0]);
 
-  // Tolera que se escriba sin guiones: "ara1000045".
+  // Tolera que se dicte sin guiones: "ara1000045" o "ara1v01200045".
   const compacto = limpio.replace(/[\s-]/g, "").toUpperCase();
-  const alterno = /^AR(A[123])(\d{6})$/.exec(compacto);
-  if (alterno) return `AR-${alterno[1]}-${alterno[2]}`;
+
+  const conPrefijo = /^AR(A[123])([VT]\d{2,5})(\d{5})$/.exec(compacto);
+  if (conPrefijo) return `AR-${conPrefijo[1]}-${conPrefijo[2]}-${conPrefijo[3]}`;
+
+  const simple = /^AR(A[123])(\d{6})$/.exec(compacto);
+  if (simple) return `AR-${simple[1]}-${simple[2]}`;
 
   return null;
 }
