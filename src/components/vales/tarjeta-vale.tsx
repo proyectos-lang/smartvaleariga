@@ -21,7 +21,8 @@ export type DatosTarjeta = {
   token: string;
   tipo: TipoVale;
   estado: EstadoVale;
-  descuento: number;
+  descuentoOro: number;
+  descuentoPlata: number;
   portador: string;
   telefono: string;
   /** Ya formateada. */
@@ -51,7 +52,8 @@ export function TarjetaVale({
     nombre: vale.portador,
     codigo: vale.codigo,
     token: vale.token,
-    descuento: vale.descuento,
+    descuentoOro: vale.descuentoOro,
+    descuentoPlata: vale.descuentoPlata,
     vigencia: vale.vigencia,
   });
 
@@ -125,13 +127,22 @@ export function TarjetaVale({
 
           <div className="bg-gold/30 h-px w-12" />
 
-          <div className="flex flex-col items-center gap-1">
-            <span className="font-display text-gold-light text-[54px] leading-none">
-              {vale.descuento}%
-            </span>
-            <span className="text-bone/50 text-[11px] tracking-[0.18em] uppercase">
-              de descuento
-            </span>
+          {/* Las dos tarifas juntas: enseñar solo una haría esperar ese
+              porcentaje sobre toda la compra. */}
+          <div className="flex items-end justify-center gap-8">
+            {([
+              ["oro", vale.descuentoOro],
+              ["plata", vale.descuentoPlata],
+            ] as [string, number][]).map(([material, pct]) => (
+              <span key={material} className="flex flex-col items-center gap-1">
+                <span className="font-display text-gold-light text-[46px] leading-none">
+                  {pct}%
+                </span>
+                <span className="text-bone/50 text-[10px] tracking-[0.2em] uppercase">
+                  en {material}
+                </span>
+              </span>
+            ))}
           </div>
 
           {/* El QR lleva un enlace, no el código: cualquier cámara lo abre */}

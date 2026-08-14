@@ -68,7 +68,7 @@ export default async function PaginaFormulario({
 
         <FormularioEmision
           tipo={tipo}
-          descuentos={tipo === "A1" ? descuentos.A1 : descuentos[tipo]}
+          tarifas={descuentos}
           tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           tiendaPredeterminada={sesion.tiendaId}
         />

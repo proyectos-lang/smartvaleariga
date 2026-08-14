@@ -7,7 +7,7 @@
  * borra todo al terminar, incluso si algo falla. No toca datos existentes.
  *
  * Lo que verifica:
- *   · formato del código y descuento congelado al emitir
+ *   · formato del código y tarifas de oro y plata congeladas al emitir
  *   · validaciones propias de cada puerta (A1 segmento, A2 origen, A3 tienda)
  *   · redención múltiple sin consumir el vale
  *   · mensaje exacto al agotarse el rango
@@ -170,9 +170,9 @@ async function probarEmision() {
     `rango_id: ${a1.rango_id}`,
   );
   comprobar(
-    "el descuento A1-VIP se congela desde configuración (30%)",
-    Number(a1.descuento_pct) === 30,
-    `${a1.descuento_pct}%`,
+    "las dos tarifas se congelan desde configuración (20% oro / 40% plata)",
+    Number(a1.descuento_oro_pct) === 20 && Number(a1.descuento_plata_pct) === 40,
+    `${a1.descuento_oro_pct}% oro · ${a1.descuento_plata_pct}% plata`,
   );
   comprobar(
     "la vigencia son 30 días",
@@ -234,13 +234,15 @@ async function probarEmision() {
 async function probarRedencion(vale) {
   console.log("\nRedención múltiple");
 
+  // [nombre, teléfono, total, oro, plata]. La tercera compra deja 1 000 en
+  // piezas que no son ni oro ni plata: el descuento no debe tocarlas.
   const compradores = [
-    ["Compradora uno", "5218112342001", 4000],
-    ["Comprador dos", "5218112342002", 2500],
-    ["Compradora tres", "5218112342003", 9000],
+    ["Compradora uno", "5218112342001", 4000, 4000, 0],
+    ["Comprador dos", "5218112342002", 2500, 0, 2500],
+    ["Compradora tres", "5218112342003", 9000, 5000, 3000],
   ];
 
-  for (const [nombre, telefono, monto] of compradores) {
+  for (const [nombre, telefono, monto, oro, plata] of compradores) {
     await rpc("fn_registrar_redencion", {
       p_codigo: vale.codigo,
       p_usuario_id: creado.usuarioId,
@@ -250,6 +252,8 @@ async function probarRedencion(vale) {
       p_correo: null,
       p_monto: monto,
       p_ticket: `T-${telefono.slice(-4)}`,
+      p_monto_oro: oro,
+      p_monto_plata: plata,
     });
   }
 
@@ -265,7 +269,7 @@ async function probarRedencion(vale) {
   );
 
   const [detalle] = await rest(
-    `vw_vales_detalle?select=ingreso_generado,descuento_otorgado&codigo=eq.${vale.codigo}`,
+    `vw_vales_detalle?select=ingreso_generado,descuento_otorgado,ingreso_oro,ingreso_plata&codigo=eq.${vale.codigo}`,
   );
   comprobar(
     "el ingreso acumulado suma las tres compras",
@@ -273,9 +277,38 @@ async function probarRedencion(vale) {
     `${detalle.ingreso_generado}`,
   );
   comprobar(
-    "el descuento se calcula con el % del vale (30% de 15 500)",
-    Number(detalle.descuento_otorgado) === 4650,
+    "el reparto por material se acumula (9 000 oro · 5 500 plata)",
+    Number(detalle.ingreso_oro) === 9000 && Number(detalle.ingreso_plata) === 5500,
+    `${detalle.ingreso_oro} oro · ${detalle.ingreso_plata} plata`,
+  );
+  comprobar(
+    "cada material lleva su tarifa (20% de 9 000 + 40% de 5 500)",
+    Number(detalle.descuento_otorgado) === 4000,
     `${detalle.descuento_otorgado}`,
+  );
+  comprobar(
+    "las piezas que no son oro ni plata quedan sin descuento",
+    Number(detalle.ingreso_generado) -
+      Number(detalle.ingreso_oro) -
+      Number(detalle.ingreso_plata) ===
+      1000,
+  );
+
+  await debeFallar(
+    "un reparto mayor que el total se rechaza",
+    rpc("fn_registrar_redencion", {
+      p_codigo: vale.codigo,
+      p_usuario_id: creado.usuarioId,
+      p_tienda_id: creado.tiendaId,
+      p_nombre: `Excede ${MARCA}`,
+      p_telefono: "5218112342004",
+      p_correo: null,
+      p_monto: 1000,
+      p_ticket: "T-EXC",
+      p_monto_oro: 800,
+      p_monto_plata: 400,
+    }),
+    "SV006",
   );
 
   await debeFallar(

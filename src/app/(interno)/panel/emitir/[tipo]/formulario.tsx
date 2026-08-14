@@ -7,10 +7,13 @@ import { Boton } from "@/components/ui/boton";
 import { Campo, Selector } from "@/components/ui/campo";
 import { CampoTelefono } from "@/components/vales/campo-telefono";
 import { emitirVale, type EstadoEmision } from "@/lib/acciones/vales";
+import { Tarifas } from "@/components/vales/tarifas";
 import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
 import { ETIQUETA_SEGMENTO } from "@/lib/supabase/types";
 
 export type OpcionTienda = { id: number; nombre: string };
+
+const SEGMENTOS: SegmentoA1[] = ["A1-30", "A1-60", "A1-90", "A1-VIP"];
 
 /**
  * Formulario de emisión. Los tres tipos comparten nombre, teléfono y correo;
@@ -18,13 +21,13 @@ export type OpcionTienda = { id: number; nombre: string };
  */
 export function FormularioEmision({
   tipo,
-  descuentos,
+  tarifas,
   tiendas,
   tiendaPredeterminada,
 }: {
   tipo: TipoVale;
-  /** Para A1 es un mapa por segmento; para A2 y A3, un número. */
-  descuentos: Record<SegmentoA1, number> | number;
+  /** Las mismas para todos los tipos: lo que diferencia es el material. */
+  tarifas: { oro: number; plata: number };
   tiendas: OpcionTienda[];
   tiendaPredeterminada: number | null;
 }) {
@@ -34,11 +37,18 @@ export function FormularioEmision({
   );
 
   const campo = (nombre: string) => estado?.campos?.[nombre];
-  const porSegmento = typeof descuentos === "object" ? descuentos : null;
 
   return (
     <form action={accion} className="flex flex-col gap-5">
       <input type="hidden" name="tipo" value={tipo} />
+
+      {/* La oferta, a la vista antes de capturar nada */}
+      <div className="border-gold/30 bg-gold/6 rounded-card text-gold-deep flex items-center justify-between gap-4 border px-5 py-4">
+        <Tarifas oro={tarifas.oro} plata={tarifas.plata} />
+        <span className="text-ink/45 max-w-[130px] text-right text-[11px] leading-relaxed">
+          Igual para todos los vales
+        </span>
+      </div>
 
       <Campo
         etiqueta="NOMBRE COMPLETO"
@@ -51,21 +61,23 @@ export function FormularioEmision({
 
       <CampoTelefono error={campo("telefono")} />
 
-      {tipo === "A1" && porSegmento ? (
+      {tipo === "A1" ? (
         <Selector
           etiqueta="CLASIFICACIÓN DEL CLIENTE"
           name="segmento"
           defaultValue=""
           error={campo("segmento")}
-          ayuda="Determina el descuento del vale."
+          // Ya no cambia el descuento —la campaña ofrece lo mismo a todos—
+          // pero sigue siendo el dato que dice de qué parte de la base salió.
+          ayuda="Para el reporte. El descuento es el mismo en los cuatro casos."
           required
         >
           <option value="" disabled>
             Elige cuándo compró por última vez…
           </option>
-          {(Object.keys(porSegmento) as SegmentoA1[]).map((s) => (
+          {SEGMENTOS.map((s) => (
             <option key={s} value={s}>
-              {ETIQUETA_SEGMENTO[s]} · {porSegmento[s]}% de descuento
+              {ETIQUETA_SEGMENTO[s]}
             </option>
           ))}
         </Selector>

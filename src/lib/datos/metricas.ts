@@ -30,6 +30,8 @@ const METRICAS_VACIAS: MetricasGenerales = {
   ticket_promedio: null,
   descuento_total: 0,
   descuento_sobre_venta: null,
+  ingreso_oro: 0,
+  ingreso_plata: 0,
 };
 
 /**

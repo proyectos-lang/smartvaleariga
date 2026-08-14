@@ -27,7 +27,7 @@ export async function generateMetadata({
 
   if (!vale) return { title: "Vale no encontrado" };
 
-  const titulo = `${Number(vale.descuento_pct)}% de descuento · ARIGA Joyería`;
+  const titulo = `${Number(vale.descuento_oro_pct)}% en oro y ${Number(vale.descuento_plata_pct)}% en plata · ARIGA Joyería`;
   const descripcion = `Vale ${vale.codigo}, vigente hasta el ${fecha(vale.fecha_vencimiento)}. Preséntalo en cualquier sucursal.`;
 
   return {
@@ -74,7 +74,8 @@ export default async function PaginaPublicaVale({
             token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
-            descuento: Number(vale.descuento_pct),
+            descuentoOro: Number(vale.descuento_oro_pct),
+            descuentoPlata: Number(vale.descuento_plata_pct),
             portador: vale.portador,
             // Nunca al cliente: el enlace circula entre terceros.
             telefono: "",
@@ -90,7 +91,7 @@ export default async function PaginaPublicaVale({
             <ol className="text-bone/55 m-0 flex list-none flex-col gap-2 p-0 text-[12.5px] leading-relaxed">
               <li>1. Visita cualquier sucursal ARIGA.</li>
               <li>2. Muestra este código en caja antes de pagar.</li>
-              <li>3. El descuento se aplica sobre el total de tu compra.</li>
+              <li>3. Cada porcentaje se aplica sobre las piezas de su material.</li>
             </ol>
           ) : (
             <p className="text-bone/55 m-0 text-[12.5px] leading-relaxed">

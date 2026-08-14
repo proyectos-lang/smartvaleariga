@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { Logotipo } from "@/components/marca/logotipo";
+import { Tarifas } from "@/components/vales/tarifas";
 import { tiendaPorToken } from "@/lib/datos/tiendas";
 import { descuentosVigentes } from "@/lib/datos/configuracion";
 
@@ -45,10 +46,13 @@ export default async function PaginaAutorregistro({
 
           {tienda.autorregistro ? (
             <>
-              <div className="flex flex-col items-center gap-1">
-                <span className="font-display text-gold-light text-[62px] leading-none">
-                  {descuentos.A3}%
-                </span>
+              <div className="flex flex-col items-center gap-2">
+                <Tarifas
+                  oro={descuentos.oro}
+                  plata={descuentos.plata}
+                  tamano="grande"
+                  className="text-gold-light"
+                />
                 <span className="text-bone/50 text-[12px] tracking-[0.2em] uppercase">
                   de descuento
                 </span>

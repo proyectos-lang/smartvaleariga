@@ -173,6 +173,8 @@ export type Database = {
           origen: string | null;
           tienda_id: number | null;
           descuento_pct: number;
+          descuento_oro_pct: number;
+          descuento_plata_pct: number;
           fecha_emision: string;
           fecha_vencimiento: string;
           anulado: boolean;
@@ -194,6 +196,8 @@ export type Database = {
           tienda_id: number;
           contacto_id: number;
           monto_compra: number;
+          monto_oro: number;
+          monto_plata: number;
           descuento_aplicado: number;
           ticket: string;
           nota: string | null;
@@ -263,6 +267,10 @@ export type Database = {
           ingreso_generado: number;
           descuento_otorgado: number;
           ultima_redencion: string | null;
+          descuento_oro_pct: number;
+          descuento_plata_pct: number;
+          ingreso_oro: number;
+          ingreso_plata: number;
         };
         Relationships: [];
       };
@@ -280,6 +288,8 @@ export type Database = {
           ticket_promedio: number | null;
           descuento_total: number;
           descuento_sobre_venta: number | null;
+          ingreso_oro: number;
+          ingreso_plata: number;
         };
         Relationships: [];
       };
@@ -421,6 +431,8 @@ export type Database = {
           estado: EstadoVale;
           redimible: boolean;
           total_redenciones: number;
+          descuento_oro_pct: number;
+          descuento_plata_pct: number;
         }[];
       };
 
@@ -438,6 +450,10 @@ export type Database = {
           p_descuento?: number | null;
           p_nota?: string | null;
           p_referido_por?: string | null;
+          /** Parte de la compra en oro; recibe la tarifa de oro. */
+          p_monto_oro?: number | null;
+          /** Parte en plata. El resto del total no lleva descuento. */
+          p_monto_plata?: number | null;
         };
         Returns: Database["smartvale"]["Tables"]["redenciones"]["Row"];
       };
@@ -467,6 +483,8 @@ export type Database = {
           fecha_vencimiento: string;
           dias_restantes: number;
           total_redenciones: number;
+          descuento_oro_pct: number;
+          descuento_plata_pct: number;
         }[];
       };
 

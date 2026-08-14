@@ -107,6 +107,35 @@ export default async function PaginaReportes({
               ? `ticket promedio ${moneda(Number(general.ticket_promedio))}`
               : "sin compras aún"}
           </span>
+
+          {/* El reparto por material, en cifras y no en colores: la plata
+              tendría que pintarse gris y a esa saturación se confunde con la
+              rejilla. Dos números rotulados dicen lo mismo sin ambigüedad. */}
+          {Number(general.ingreso_total) > 0 ? (
+            <div className="border-ink/8 mt-2 flex gap-8 border-t pt-3">
+              {(
+                [
+                  ["EN ORO", Number(general.ingreso_oro)],
+                  ["EN PLATA", Number(general.ingreso_plata)],
+                  [
+                    "OTRAS PIEZAS",
+                    Number(general.ingreso_total) -
+                      Number(general.ingreso_oro) -
+                      Number(general.ingreso_plata),
+                  ],
+                ] as [string, number][]
+              ).map(([etiqueta, monto]) => (
+                <span key={etiqueta} className="flex flex-col gap-1">
+                  <span className="text-ink/40 text-[9px] font-medium tracking-[0.18em]">
+                    {etiqueta}
+                  </span>
+                  <span className="text-ink text-[15px] font-semibold tabular-nums">
+                    {monedaCompacta(monto)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid shrink-0 gap-6 sm:grid-cols-2 lg:w-[420px]">

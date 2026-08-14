@@ -86,7 +86,7 @@ export default async function PaginaEmitirA3({
               <EnlacePublico
                 tienda={tienda.nombre}
                 url={urlAutorregistro(tienda.token)}
-                descuento={descuentos.A3}
+                tarifas={descuentos}
               />
             ) : (
               <p className="border-clay/25 bg-clay/6 text-clay rounded-field m-0 border px-3 py-[10px] text-[12px] leading-relaxed">
@@ -115,7 +115,7 @@ export default async function PaginaEmitirA3({
 
           <FormularioEmision
             tipo="A3"
-            descuentos={descuentos.A3}
+            tarifas={descuentos}
             tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
             tiendaPredeterminada={sesion.tiendaId ?? tienda?.id ?? null}
           />

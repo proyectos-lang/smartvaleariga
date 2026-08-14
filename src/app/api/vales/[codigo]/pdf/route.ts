@@ -42,13 +42,16 @@ export async function GET(
     );
   }
 
-  const enlace = urlPublicaVale(vale.codigo);
+  // Con el token, no con el código: `/v/AR-A1-000045` dejó de resolver
+  // cuando el enlace público pasó a ser opaco.
+  const enlace = urlPublicaVale(vale.token);
 
   const pdf = await renderValePdf({
     codigo: vale.codigo,
     tipo: vale.tipo,
     tipoEtiqueta: ETIQUETA_TIPO[vale.tipo],
-    descuento: Number(vale.descuento_pct),
+    descuentoOro: Number(vale.descuento_oro_pct),
+    descuentoPlata: Number(vale.descuento_plata_pct),
     portador: vale.portador,
     emision: fecha(vale.fecha_emision),
     vigencia: fecha(vale.fecha_vencimiento),

@@ -7,6 +7,9 @@ import { db } from "@/lib/supabase/server";
 export type RedencionDetalle = {
   id: number;
   monto_compra: number;
+  /** Reparto por material: lo que decide el descuento de cada parte. */
+  monto_oro: number;
+  monto_plata: number;
   descuento_aplicado: number;
   ticket: string;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
@@ -31,7 +34,8 @@ function unico<T>(valor: T | T[] | null): T | null {
 }
 
 const SELECCION = `
-  id, monto_compra, descuento_aplicado, ticket, nota, referido_por, fecha_creacion, vale_id,
+  id, monto_compra, monto_oro, monto_plata, descuento_aplicado, ticket, nota,
+  referido_por, fecha_creacion, vale_id,
   vales!inner(codigo, usuario_id),
   contactos!inner(nombre, telefono, correo),
   tiendas!inner(nombre),
@@ -41,6 +45,8 @@ const SELECCION = `
 type FilaCruda = {
   id: number;
   monto_compra: number;
+  monto_oro: number;
+  monto_plata: number;
   descuento_aplicado: number;
   ticket: string;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
@@ -65,6 +71,8 @@ function normalizar(fila: FilaCruda): RedencionDetalle {
   return {
     id: fila.id,
     monto_compra: Number(fila.monto_compra),
+    monto_oro: Number(fila.monto_oro),
+    monto_plata: Number(fila.monto_plata),
     descuento_aplicado: Number(fila.descuento_aplicado),
     ticket: fila.ticket,
     referido_por: fila.referido_por,

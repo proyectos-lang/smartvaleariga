@@ -15,16 +15,19 @@ import { Check, Copy, MessageCircle, Printer } from "lucide-react";
 export function EnlacePublico({
   tienda,
   url,
-  descuento,
+  tarifas,
 }: {
   tienda: string;
   url: string;
-  descuento: number;
+  tarifas: { oro: number; plata: number };
 }) {
   const [copiado, setCopiado] = useState(false);
 
   const mensaje = [
-    `Te compartimos ${descuento}% de descuento en ARIGA Joyería.`,
+    "Te compartimos tu descuento en ARIGA Joyería.",
+    "",
+    `${tarifas.oro}% en oro`,
+    `${tarifas.plata}% en plata`,
     "",
     "Regístrate aquí y recibe tu vale al instante:",
     url,
@@ -77,7 +80,8 @@ export function EnlacePublico({
 
       <p className="text-ink/45 m-0 text-center text-[11.5px] leading-relaxed">
         Muéstraselo al cliente para que lo escane, o mándaselo. Se registra
-        solo y recibe su vale de {descuento}% al instante, a nombre de{" "}
+        solo y recibe su vale al instante —{tarifas.oro}% en oro y {tarifas.plata}%
+        en plata—, a nombre de{" "}
         {tienda}.
       </p>
     </div>

@@ -72,7 +72,8 @@ export default async function PaginaValidacion({
     );
   }
 
-  const descuento = Number(vale.descuento_pct);
+  const descuentoOro = Number(vale.descuento_oro_pct);
+  const descuentoPlata = Number(vale.descuento_plata_pct);
 
   const ficha = (
     <Tarjeta
@@ -88,12 +89,24 @@ export default async function PaginaValidacion({
       {vale.redimible ? (
         <div className="border-gold/30 bg-gold/8 rounded-card flex items-center gap-4 border px-5 py-4">
           <Check size={22} className="text-gold-deep shrink-0" />
-          <div className="flex flex-col">
-            <span className="font-display text-gold-deep text-[30px] leading-none">
-              {descuento}%
-            </span>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-end gap-5">
+              {(
+                [
+                  ["oro", descuentoOro],
+                  ["plata", descuentoPlata],
+                ] as [string, number][]
+              ).map(([material, pct]) => (
+                <span key={material} className="flex items-baseline gap-[5px]">
+                  <span className="font-display text-gold-deep text-[30px] leading-none">
+                    {pct}%
+                  </span>
+                  <span className="text-ink/55 text-[12px]">en {material}</span>
+                </span>
+              ))}
+            </div>
             <span className="text-ink/55 text-[12px]">
-              de descuento · vigente hasta el {fecha(vale.fecha_vencimiento)}
+              Vigente hasta el {fecha(vale.fecha_vencimiento)}
             </span>
           </div>
         </div>
@@ -185,12 +198,8 @@ export default async function PaginaValidacion({
               </h3>
               <p className="text-ink/50 m-0 text-[12.5px] leading-relaxed">
                 Puede ser una persona distinta de quien recibió el vale.
-                {descuento > 0 ? (
-                  <>
-                    {" "}
-                    El descuento se calcula solo: {descuento}% del total.
-                  </>
-                ) : null}
+                Separa cuánto de la compra fue oro y cuánto plata: el descuento
+                se calcula solo.
               </p>
             </div>
 
@@ -207,7 +216,8 @@ export default async function PaginaValidacion({
               <FormularioRedencion
                 codigo={vale.codigo}
                 portador={vale.portador}
-                descuentoPct={descuento}
+                descuentoOro={descuentoOro}
+                descuentoPlata={descuentoPlata}
                 tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
                 tiendaPredeterminada={sesion.tiendaId}
               />

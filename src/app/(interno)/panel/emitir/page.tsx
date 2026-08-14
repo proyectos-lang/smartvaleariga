@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Building2, PhoneCall, Store } from "lucide-react";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
+import { Tarifas } from "@/components/vales/tarifas";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { descuentosVigentes } from "@/lib/datos/configuracion";
 import { cupoDe } from "@/lib/datos/vales";
@@ -58,11 +59,6 @@ export default async function PaginaEmitir() {
   // A1 ya no consume bloque: llamar a la base histórica no reparte nada
   // numerado. El cupo solo frena A2 y A3.
   const sinCupo = cupo !== null && (cupo.sinRango || cupo.restantes === 0);
-
-  const descuentoDe = (tipo: "A1" | "A2" | "A3") =>
-    tipo === "A1"
-      ? `${Math.min(...Object.values(descuentos.A1))}–${Math.max(...Object.values(descuentos.A1))}%`
-      : `${descuentos[tipo]}%`;
 
   return (
     <>
@@ -124,12 +120,17 @@ export default async function PaginaEmitir() {
                 {detalle}
               </p>
 
+              {/* La oferta es la misma en las tres puertas: lo que cambia el
+                  descuento es el material, no de dónde viene el cliente. */}
               <div className="border-ink/8 flex items-center justify-between border-t pt-3">
+                <Tarifas
+                  oro={descuentos.oro}
+                  plata={descuentos.plata}
+                  tamano="compacto"
+                  className="text-ink/40"
+                />
                 <span className="text-ink/40 text-[11px]">
-                  Descuento {descuentoDe(tipo)}
-                </span>
-                <span className="text-ink/40 text-[11px]">
-                  Vigencia {descuentos.diasVigencia} días
+                  {descuentos.diasVigencia} días
                 </span>
               </div>
             </>

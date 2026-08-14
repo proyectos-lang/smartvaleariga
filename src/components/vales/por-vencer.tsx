@@ -51,7 +51,8 @@ export function PorVencer({
             nombre: v.portador,
             codigo: v.codigo,
             token: v.token,
-            descuento: Number(v.descuento_pct),
+            descuentoOro: Number(v.descuento_oro_pct),
+            descuentoPlata: Number(v.descuento_plata_pct),
             vigencia: fecha(v.fecha_vencimiento),
           });
 
@@ -82,7 +83,7 @@ export function PorVencer({
                     {v.codigo}
                   </Link>
                   {" · "}
-                  {Number(v.descuento_pct)}%
+                  {Number(v.descuento_oro_pct)}/{Number(v.descuento_plata_pct)}%
                   {v.total_redenciones > 0
                     ? ` · ${v.total_redenciones} ${v.total_redenciones === 1 ? "compra" : "compras"}`
                     : " · sin usar"}

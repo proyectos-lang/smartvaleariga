@@ -173,8 +173,9 @@ export default async function PaginaVales({
                       {v.total_redenciones === 1 ? "compra" : "compras"}
                     </span>
                   </span>
-                  <span className="shrink-0 text-[11px] font-medium">
-                    {Number(v.descuento_pct)}%
+                  <span className="shrink-0 text-[11px] font-medium tabular-nums">
+                    {Number(v.descuento_oro_pct)}/
+                    {Number(v.descuento_plata_pct)}%
                   </span>
                   <ChipEstado estado={v.estado} />
                 </Link>

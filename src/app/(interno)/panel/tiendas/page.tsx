@@ -19,7 +19,7 @@ export default async function PaginaTiendas() {
     listarTiendas(false),
     descuentosVigentes(),
   ]);
-  const descuentoA3 = descuentos.A3;
+  const descuentoA3 = descuentos.oro;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">

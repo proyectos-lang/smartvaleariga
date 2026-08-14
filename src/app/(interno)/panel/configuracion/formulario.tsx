@@ -81,56 +81,32 @@ export function FormularioConfiguracion({
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h3 className="font-display m-0 text-[19px] leading-tight font-normal">
-            Descuento por tipo de vale
+            Descuento por material
           </h3>
           <p className="text-ink/50 m-0 text-[12.5px] leading-relaxed">
-            Se aplica solo a los vales que se emitan de aquí en adelante. Los
-            ya entregados conservan el porcentaje con el que se generaron.
+            La misma oferta para todos los tipos de vale: lo que cambia el
+            descuento es la pieza, no el cliente. Se aplica solo a los vales
+            que se emitan de aquí en adelante; los ya entregados conservan los
+            porcentajes con los que se generaron.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <CampoNumero
-            clave="descuento_a1_30"
-            etiqueta="A1 · COMPRÓ HACE 30 DÍAS"
-            valor={v("descuento_a1_30", "15")}
+            clave="descuento_oro"
+            etiqueta="PIEZAS DE ORO"
+            ayuda="Sobre la parte de la compra que sea de oro."
+            valor={v("descuento_oro", "20")}
             sufijo="%"
-            error={err("descuento_a1_30")}
+            error={err("descuento_oro")}
           />
           <CampoNumero
-            clave="descuento_a1_60"
-            etiqueta="A1 · COMPRÓ HACE 60 DÍAS"
-            valor={v("descuento_a1_60", "20")}
+            clave="descuento_plata"
+            etiqueta="PIEZAS DE PLATA"
+            ayuda="Sobre la parte que sea de plata. El resto no lleva descuento."
+            valor={v("descuento_plata", "40")}
             sufijo="%"
-            error={err("descuento_a1_60")}
-          />
-          <CampoNumero
-            clave="descuento_a1_90"
-            etiqueta="A1 · COMPRÓ HACE 90 DÍAS"
-            valor={v("descuento_a1_90", "25")}
-            sufijo="%"
-            error={err("descuento_a1_90")}
-          />
-          <CampoNumero
-            clave="descuento_a1_vip"
-            etiqueta="A1 · CLIENTE VIP"
-            valor={v("descuento_a1_vip", "30")}
-            sufijo="%"
-            error={err("descuento_a1_vip")}
-          />
-          <CampoNumero
-            clave="descuento_a2"
-            etiqueta="A2 · EMPLEADOS Y REFERIDOS"
-            valor={v("descuento_a2", "20")}
-            sufijo="%"
-            error={err("descuento_a2")}
-          />
-          <CampoNumero
-            clave="descuento_a3"
-            etiqueta="A3 · VISITANTE DE TIENDA"
-            valor={v("descuento_a3", "10")}
-            sufijo="%"
-            error={err("descuento_a3")}
+            error={err("descuento_plata")}
           />
         </div>
       </section>

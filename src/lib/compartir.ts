@@ -85,13 +85,15 @@ export function mensajeVale({
   nombre,
   codigo,
   token,
-  descuento,
+  descuentoOro,
+  descuentoPlata,
   vigencia,
 }: {
   nombre: string;
   codigo: string;
   token: string;
-  descuento: number;
+  descuentoOro: number;
+  descuentoPlata: number;
   /** Ya formateada, p. ej. "12 sep 2026". */
   vigencia: string;
 }) {
@@ -100,7 +102,9 @@ export function mensajeVale({
   return [
     `Hola ${saludo}, te compartimos tu vale de ARIGA Joyería.`,
     "",
-    `Descuento: ${descuento}%`,
+    `${descuentoOro}% de descuento en oro`,
+    `${descuentoPlata}% de descuento en plata`,
+    "",
     `Código: ${codigo}`,
     `Vigente hasta el ${vigencia}`,
     "",

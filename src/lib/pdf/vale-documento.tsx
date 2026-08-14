@@ -70,12 +70,13 @@ const s = StyleSheet.create({
   columna: { flex: 1, flexDirection: "column", gap: 15 },
   etiqueta: { fontSize: 7, letterSpacing: 2.2, color: C.tenue },
   valor: { fontSize: 11, color: C.ink, marginTop: 4 },
+  tarifas: { flexDirection: "row", gap: 22, marginTop: 2 },
   descuento: {
     fontFamily: "Times-Bold",
-    fontSize: 40,
+    fontSize: 34,
     color: C.ink,
-    marginTop: 2,
   },
+  material: { fontSize: 7, letterSpacing: 1.6, color: C.tenue, marginTop: 2 },
   qrCaja: {
     width: 146,
     alignItems: "center",
@@ -121,7 +122,8 @@ export type DatosVale = {
   tipo: string;
   /** Etiqueta legible del tipo, p. ej. "Empleados y referidos". */
   tipoEtiqueta: string;
-  descuento: number;
+  descuentoOro: number;
+  descuentoPlata: number;
   portador: string;
   /** Ya formateadas. */
   emision: string;
@@ -137,7 +139,7 @@ export type DatosVale = {
 
 const CONDICIONES_BASE = [
   "Válido presentando este código en cualquier sucursal ARIGA dentro de su vigencia.",
-  "El descuento se aplica sobre el total de la compra y no es canjeable por efectivo.",
+  "Cada porcentaje aplica sobre las piezas de su material y no es canjeable por efectivo.",
   "Puede usarse en varias compras y por distintas personas mientras siga vigente.",
 ];
 
@@ -148,7 +150,7 @@ export function ValeDocumento(vale: DatosVale) {
     <Document
       title={`Vale ${vale.codigo} · ARIGA Joyería`}
       author="ARIGA Joyería"
-      subject={`${vale.descuento}% de descuento · ${vale.tipoEtiqueta}`}
+      subject={`${vale.descuentoOro}% en oro y ${vale.descuentoPlata}% en plata · ${vale.tipoEtiqueta}`}
     >
       <Page size="A5" orientation="landscape" style={s.page}>
         <View style={s.encabezado}>
@@ -165,7 +167,21 @@ export function ValeDocumento(vale: DatosVale) {
           <View style={s.columna}>
             <View>
               <Text style={s.etiqueta}>DESCUENTO</Text>
-              <Text style={s.descuento}>{vale.descuento}%</Text>
+              {/* Los dos materiales juntos: con uno solo el cliente esperaría
+                  ese porcentaje sobre toda la compra. */}
+              <View style={s.tarifas}>
+                {(
+                  [
+                    ["ORO", vale.descuentoOro],
+                    ["PLATA", vale.descuentoPlata],
+                  ] as [string, number][]
+                ).map(([material, pct]) => (
+                  <View key={material}>
+                    <Text style={s.descuento}>{pct}%</Text>
+                    <Text style={s.material}>EN {material}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
             <View>
               <Text style={s.etiqueta}>PORTADOR</Text>

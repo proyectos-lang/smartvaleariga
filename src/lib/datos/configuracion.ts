@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/supabase/server";
-import type { Configuracion, SegmentoA1, TipoVale } from "@/lib/supabase/types";
+import type { Configuracion } from "@/lib/supabase/types";
 
 /** Parámetros editables del panel de configuración de vales. */
 
@@ -22,34 +22,32 @@ export async function mapaConfiguracion(): Promise<Record<string, string>> {
   return Object.fromEntries(filas.map((f) => [f.clave, f.valor]));
 }
 
-/**
- * Clave de configuración que guarda el descuento de una combinación.
- * Debe coincidir con `smartvale.fn_descuento_de`.
- */
-export function claveDescuento(tipo: TipoVale, segmento?: SegmentoA1 | null) {
-  return tipo === "A1" && segmento
-    ? `descuento_${segmento.toLowerCase().replace("-", "_")}`
-    : `descuento_${tipo.toLowerCase()}`;
-}
+export type Tarifas = {
+  /** % sobre las piezas de oro. */
+  oro: number;
+  /** % sobre las piezas de plata. */
+  plata: number;
+  diasVigencia: number;
+};
 
 /**
- * Descuentos vigentes por tipo y segmento, para mostrarlos en el formulario
- * antes de emitir. El valor que queda en el vale lo fija Postgres al emitir:
- * esto es solo lo que se le enseña a la vendedora.
+ * Tarifas vigentes.
+ *
+ * El descuento ya no depende del cliente sino de la pieza: la campaña es de
+ * boca en boca y ofrece lo mismo a todos, así que un A1-VIP y un visitante
+ * llevan el mismo vale. Lo que cambia es el material.
+ *
+ * Esto es solo lo que se le enseña a la vendedora antes de emitir; el valor
+ * que queda dentro del vale lo congela Postgres en ese momento.
  */
-export async function descuentosVigentes() {
+export async function descuentosVigentes(): Promise<Tarifas> {
   const mapa = await mapaConfiguracion();
-  const leer = (clave: string) => Number(mapa[clave] ?? 0);
+  const leer = (clave: string, defecto: number) =>
+    mapa[clave] === undefined ? defecto : Number(mapa[clave]);
 
   return {
-    A1: {
-      "A1-30": leer("descuento_a1_30"),
-      "A1-60": leer("descuento_a1_60"),
-      "A1-90": leer("descuento_a1_90"),
-      "A1-VIP": leer("descuento_a1_vip"),
-    } as Record<SegmentoA1, number>,
-    A2: leer("descuento_a2"),
-    A3: leer("descuento_a3"),
-    diasVigencia: Number(mapa.dias_vigencia_vale ?? 30),
+    oro: leer("descuento_oro", 20),
+    plata: leer("descuento_plata", 40),
+    diasVigencia: leer("dias_vigencia_vale", 30),
   };
 }

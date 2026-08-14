@@ -50,7 +50,12 @@ export async function GET(
 
   const enlace = urlPublicaVale(vale.token);
   const qr = await qrDataUrl(enlace, { tamano: vertical ? 620 : 320, margen: 1 });
-  const descuento = Number(vale.descuento_pct);
+  // Las dos tarifas siempre juntas: enseñar solo una haría esperar ese
+  // porcentaje sobre toda la compra.
+  const tarifas: [string, number][] = [
+    ["EN ORO", Number(vale.descuento_oro_pct)],
+    ["EN PLATA", Number(vale.descuento_plata_pct)],
+  ];
 
   const leyenda =
     vale.estado === "activo"
@@ -127,22 +132,45 @@ export async function GET(
             }}
           />
 
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 56 }}>
+            {tarifas.map(([etiqueta, pct]) => (
+              <div
+                key={etiqueta}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 118,
+                    lineHeight: 1,
+                    color: ORO_CLARO,
+                    fontWeight: 700,
+                  }}
+                >
+                  {pct}%
+                </span>
+                <span
+                  style={{
+                    fontSize: 22,
+                    letterSpacing: 6,
+                    color: TENUE,
+                    marginTop: 10,
+                  }}
+                >
+                  {etiqueta}
+                </span>
+              </div>
+            ))}
+          </div>
           <span
             style={{
-              fontSize: 132,
-              lineHeight: 1,
-              color: ORO_CLARO,
-              fontWeight: 700,
-            }}
-          >
-            {descuento}%
-          </span>
-          <span
-            style={{
-              fontSize: 24,
-              letterSpacing: 7,
-              color: TENUE,
-              marginTop: 10,
+              fontSize: 20,
+              letterSpacing: 4,
+              color: "#5F5C57",
+              marginTop: 18,
             }}
           >
             DE DESCUENTO
@@ -254,20 +282,29 @@ export async function GET(
               style={{ display: "flex", width: 64, height: 2, backgroundColor: ORO }}
             />
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <span
-                style={{
-                  fontSize: 108,
-                  color: ORO_CLARO,
-                  lineHeight: 1,
-                  fontWeight: 700,
-                }}
-              >
-                {descuento}%
-              </span>
-              <span style={{ fontSize: 20, letterSpacing: 5, color: "#A8A49C" }}>
-                DE DESCUENTO
-              </span>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 40 }}>
+              {tarifas.map(([etiqueta, pct]) => (
+                <div
+                  key={etiqueta}
+                  style={{ display: "flex", flexDirection: "column", gap: 2 }}
+                >
+                  <span
+                    style={{
+                      fontSize: 96,
+                      color: ORO_CLARO,
+                      lineHeight: 1,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {pct}%
+                  </span>
+                  <span
+                    style={{ fontSize: 19, letterSpacing: 4, color: "#A8A49C" }}
+                  >
+                    {etiqueta}
+                  </span>
+                </div>
+              ))}
             </div>
 
             <div

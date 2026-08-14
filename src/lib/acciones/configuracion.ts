@@ -21,12 +21,8 @@ export type EstadoConfig = {
 
 /** Límites por clave. Evita guardar un 900% de descuento por un dedazo. */
 const LIMITES: Record<string, { min: number; max: number; etiqueta: string }> = {
-  descuento_a1_30: { min: 0, max: 100, etiqueta: "Descuento A1-30" },
-  descuento_a1_60: { min: 0, max: 100, etiqueta: "Descuento A1-60" },
-  descuento_a1_90: { min: 0, max: 100, etiqueta: "Descuento A1-90" },
-  descuento_a1_vip: { min: 0, max: 100, etiqueta: "Descuento A1-VIP" },
-  descuento_a2: { min: 0, max: 100, etiqueta: "Descuento A2" },
-  descuento_a3: { min: 0, max: 100, etiqueta: "Descuento A3" },
+  descuento_oro: { min: 0, max: 100, etiqueta: "Descuento en oro" },
+  descuento_plata: { min: 0, max: 100, etiqueta: "Descuento en plata" },
   dias_vigencia_vale: { min: 1, max: 3650, etiqueta: "Días de vigencia" },
   vales_por_rango: { min: 1, max: 10000, etiqueta: "Vales por bloque" },
 };

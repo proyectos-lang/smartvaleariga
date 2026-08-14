@@ -25,6 +25,14 @@ const Monto = z
   .refine((v) => v !== "" && !Number.isNaN(Number(v)), "Escribe un monto válido.")
   .transform(Number);
 
+/** Igual, pero un campo en blanco vale cero. */
+const MontoOpcional = z
+  .string()
+  .trim()
+  .transform((v) => (v === "" ? "0" : v))
+  .pipe(Monto)
+  .refine((v) => v >= 0, "El monto no puede ser negativo.");
+
 const EsquemaRedencion = z.object({
   codigo: z
     .string()
@@ -60,6 +68,10 @@ const EsquemaRedencion = z.object({
     .max(120, "El nombre es demasiado largo.")
     .transform((v) => (v === "" ? null : v)),
   monto: Monto.refine((v) => v > 0, "El monto debe ser mayor que cero."),
+  // El reparto por material: de ahí sale el descuento. Vacío = cero, porque
+  // una compra puede no llevar nada de ese material.
+  montoOro: MontoOpcional,
+  montoPlata: MontoOpcional,
   descuento: z
     .string()
     .trim()
@@ -95,6 +107,8 @@ export async function registrarRedencion(
     telefono: formData.get("telefono") ?? "",
     correo: formData.get("correo") ?? "",
     monto: formData.get("monto") ?? "",
+    montoOro: formData.get("montoOro") ?? "",
+    montoPlata: formData.get("montoPlata") ?? "",
     descuento: formData.get("descuento") ?? "",
     ticket: formData.get("ticket") ?? "",
     nota: formData.get("nota") ?? "",
@@ -119,6 +133,16 @@ export async function registrarRedencion(
     };
   }
 
+  // La compra puede llevar piezas que no son ni oro ni plata, así que el
+  // reparto no tiene por qué llegar al total; pasarlo sí es un error de
+  // captura. La base lo vuelve a comprobar.
+  if (d.montoOro + d.montoPlata > d.monto) {
+    return {
+      error: "Lo de oro y lo de plata suman más que el total de la compra.",
+      campos: { monto: "Menor que oro + plata" },
+    };
+  }
+
   const { error } = await db().rpc("fn_registrar_redencion", {
     p_codigo: d.codigo,
     p_usuario_id: sesion.usuarioId,
@@ -131,6 +155,8 @@ export async function registrarRedencion(
     p_descuento: d.descuento,
     p_nota: d.nota,
     p_referido_por: d.referidoPor,
+    p_monto_oro: d.montoOro,
+    p_monto_plata: d.montoPlata,
   });
 
   if (error) {

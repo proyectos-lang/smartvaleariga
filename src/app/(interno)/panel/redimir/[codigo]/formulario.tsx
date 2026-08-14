@@ -11,22 +11,38 @@ import {
   type EstadoRedencion,
 } from "@/lib/acciones/redenciones";
 
+/** Deja solo dígitos y un punto decimal. */
+function limpiar(valor: string) {
+  return valor.replace(/[^\d.]/g, "");
+}
+
+function numero(valor: string) {
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /**
  * Captura de la compra. Todo lo que pide la especificación es obligatorio:
  * sin comprador identificado y sin ticket no hay trazabilidad, que es la
  * razón de ser del módulo.
+ *
+ * Desde que el descuento es por material, la caja tiene que separar cuánto
+ * de la compra fue oro y cuánto plata: es lo que decide el descuento y lo
+ * único que después permite saber qué material movió la campaña.
  */
 export function FormularioRedencion({
   codigo,
   portador,
-  descuentoPct,
+  descuentoOro,
+  descuentoPlata,
   tiendas,
   tiendaPredeterminada,
 }: {
   codigo: string;
   /** Nombre del portador: se sugiere como valor por omisión del referidor. */
   portador: string;
-  descuentoPct: number;
+  descuentoOro: number;
+  descuentoPlata: number;
   tiendas: { id: number; nombre: string }[];
   tiendaPredeterminada: number | null;
 }) {
@@ -35,27 +51,50 @@ export function FormularioRedencion({
     null,
   );
 
+  const [oro, setOro] = useState("");
+  const [plata, setPlata] = useState("");
   const [monto, setMonto] = useState("");
+  const [montoTocado, setMontoTocado] = useState(false);
   const [descuento, setDescuento] = useState("");
   const [descuentoTocado, setDescuentoTocado] = useState(false);
 
   const campo = (nombre: string) => estado?.campos?.[nombre];
 
   /**
-   * El descuento se calcula solo con el % congelado del vale, pero sigue
-   * siendo editable: en caja pueden aplicarse topes o redondeos que el
-   * sistema no conoce. En cuanto la vendedora lo toca, deja de recalcularse.
+   * Al teclear los materiales se rellenan solos el total y el descuento.
+   *
+   * El total se autocompleta porque la compra normal es solo de oro y plata;
+   * si además lleva otra pieza, la cajera lo corrige y deja de recalcularse.
+   * El descuento sigue editable: en caja pueden aplicarse topes o redondeos
+   * que el sistema no conoce.
    */
-  function cambiarMonto(valor: string) {
-    const limpio = valor.replace(/[^\d.]/g, "");
-    setMonto(limpio);
+  function recalcular(nuevoOro: string, nuevaPlata: string) {
+    const o = numero(nuevoOro);
+    const p = numero(nuevaPlata);
+
+    if (!montoTocado) {
+      setMonto(o + p > 0 ? (o + p).toFixed(2) : "");
+    }
     if (!descuentoTocado) {
-      const n = Number(limpio);
-      setDescuento(
-        Number.isFinite(n) && n > 0 ? ((n * descuentoPct) / 100).toFixed(2) : "",
-      );
+      const d = (o * descuentoOro) / 100 + (p * descuentoPlata) / 100;
+      setDescuento(d > 0 ? d.toFixed(2) : "");
     }
   }
+
+  function cambiarOro(valor: string) {
+    const v = limpiar(valor);
+    setOro(v);
+    recalcular(v, plata);
+  }
+
+  function cambiarPlata(valor: string) {
+    const v = limpiar(valor);
+    setPlata(v);
+    recalcular(oro, v);
+  }
+
+  // El servidor también lo rechaza; esto es solo para no llegar hasta allá.
+  const excede = numero(oro) + numero(plata) > numero(monto) + 0.001;
 
   return (
     <form action={accion} className="flex flex-col gap-5">
@@ -118,17 +157,66 @@ export function FormularioRedencion({
           ))}
         </Selector>
 
+        {/* Primero el reparto por material: de ahí salen el total y el
+            descuento, así que es lo que se teclea. */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Campo
-            etiqueta="MONTO TOTAL"
-            name="monto"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={monto}
-            onChange={(e) => cambiarMonto(e.target.value)}
-            error={campo("monto")}
-            required
-          />
+          <div className="flex flex-col gap-[7px]">
+            <Rotulo>EN ORO</Rotulo>
+            <input
+              name="montoOro"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={oro}
+              onChange={(e) => cambiarOro(e.target.value)}
+              className="border-ink/14 bg-paper text-ink rounded-field focus:border-gold w-full border px-[14px] py-[13px] text-sm transition-colors outline-none focus:shadow-[0_0_0_3px_rgba(198,161,91,0.16)]"
+            />
+            <span className="text-ink/40 text-[11px]">
+              Lleva {descuentoOro}% de descuento.
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-[7px]">
+            <Rotulo>EN PLATA</Rotulo>
+            <input
+              name="montoPlata"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={plata}
+              onChange={(e) => cambiarPlata(e.target.value)}
+              className="border-ink/14 bg-paper text-ink rounded-field focus:border-gold w-full border px-[14px] py-[13px] text-sm transition-colors outline-none focus:shadow-[0_0_0_3px_rgba(198,161,91,0.16)]"
+            />
+            <span className="text-ink/40 text-[11px]">
+              Lleva {descuentoPlata}% de descuento.
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-[7px]">
+            <Rotulo>MONTO TOTAL</Rotulo>
+            <input
+              name="monto"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={monto}
+              onChange={(e) => {
+                setMontoTocado(true);
+                setMonto(limpiar(e.target.value));
+              }}
+              required
+              className="border-ink/14 bg-paper text-ink rounded-field focus:border-gold w-full border px-[14px] py-[13px] text-sm transition-colors outline-none focus:shadow-[0_0_0_3px_rgba(198,161,91,0.16)]"
+            />
+            <span
+              className={`text-[11px] ${excede ? "text-clay" : "text-ink/40"}`}
+            >
+              {campo("monto") ??
+                (excede
+                  ? "Oro y plata suman más que el total."
+                  : montoTocado
+                    ? "Súbelo si la compra lleva piezas de otro material."
+                    : "Suma de oro y plata. Edítalo si hay otras piezas.")}
+            </span>
+          </div>
 
           <div className="flex flex-col gap-[7px]">
             <Rotulo>DESCUENTO APLICADO</Rotulo>
@@ -139,14 +227,14 @@ export function FormularioRedencion({
               value={descuento}
               onChange={(e) => {
                 setDescuentoTocado(true);
-                setDescuento(e.target.value.replace(/[^\d.]/g, ""));
+                setDescuento(limpiar(e.target.value));
               }}
               className="border-ink/14 bg-paper text-ink rounded-field focus:border-gold w-full border px-[14px] py-[13px] text-sm transition-colors outline-none focus:shadow-[0_0_0_3px_rgba(198,161,91,0.16)]"
             />
             <span className="text-ink/40 text-[11px]">
               {descuentoTocado
                 ? "Editado a mano."
-                : `Calculado con el ${descuentoPct}% del vale.`}
+                : `${descuentoOro}% del oro y ${descuentoPlata}% de la plata.`}
             </span>
           </div>
         </div>
