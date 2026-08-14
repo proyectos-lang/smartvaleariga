@@ -1,27 +1,37 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { createClient } from "@/lib/supabase/server";
-import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { verificarContrasena } from "@/lib/auth/contrasena";
+import { abrirSesion, cerrarSesionActual } from "@/lib/auth/sesion";
+import { db } from "@/lib/supabase/server";
+import { haySupabase } from "@/lib/supabase/env";
 
 const Credenciales = z.object({
-  email: z.string().trim().pipe(z.email("Escribe un correo válido.")),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+  correo: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("Escribe un correo válido.")),
+  contrasena: z.string().min(1, "Escribe tu contraseña."),
   redirect: z.string().optional(),
 });
 
 export type EstadoAuth = { error?: string } | null;
+
+/** Mismo mensaje para correo inexistente y clave incorrecta: no revelamos cuál falló. */
+const CREDENCIALES_INVALIDAS = "Correo o contraseña incorrectos.";
 
 export async function iniciarSesion(
   _estadoPrevio: EstadoAuth,
   formData: FormData,
 ): Promise<EstadoAuth> {
   const analisis = Credenciales.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
+    correo: formData.get("correo"),
+    contrasena: formData.get("contrasena"),
     redirect: formData.get("redirect") ?? undefined,
   });
 
@@ -29,27 +39,40 @@ export async function iniciarSesion(
     return { error: analisis.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  if (!hasSupabaseEnv()) {
+  if (!haySupabase()) {
     return {
       error:
-        "Supabase todavía no está configurado. Copia .env.example a .env.local y agrega las credenciales del proyecto.",
+        "La base de datos no está configurada. Copia .env.example a .env.local y agrega las credenciales de Supabase.",
     };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: analisis.data.email,
-    password: analisis.data.password,
-  });
+  const { correo, contrasena } = analisis.data;
+
+  const { data: usuario, error } = await db()
+    .from("usuarios")
+    .select("id, contrasena_hash, activo")
+    .eq("correo", correo)
+    .maybeSingle();
 
   if (error) {
-    return {
-      error:
-        error.message === "Invalid login credentials"
-          ? "Correo o contraseña incorrectos."
-          : error.message,
-    };
+    return { error: "No se pudo verificar la cuenta. Intenta de nuevo." };
   }
+
+  // Se compara aunque el usuario no exista, contra un hash de descarte, para
+  // que el tiempo de respuesta no delate qué correos están registrados.
+  const hash = usuario?.contrasena_hash ?? HASH_SEÑUELO;
+  const coincide = await verificarContrasena(contrasena, hash);
+
+  if (!usuario || !coincide) {
+    return { error: CREDENCIALES_INVALIDAS };
+  }
+
+  if (!usuario.activo) {
+    return { error: "Esta cuenta está desactivada. Contacta al administrador." };
+  }
+
+  const cabeceras = await headers();
+  await abrirSesion(usuario.id, cabeceras.get("user-agent"));
 
   const destino = analisis.data.redirect?.startsWith("/")
     ? analisis.data.redirect
@@ -60,10 +83,14 @@ export async function iniciarSesion(
 }
 
 export async function cerrarSesion() {
-  if (hasSupabaseEnv()) {
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-  }
+  await cerrarSesionActual();
   revalidatePath("/", "layout");
   redirect("/login");
 }
+
+/**
+ * Hash real de una contraseña aleatoria que nadie conoce. Solo existe para
+ * que la verificación tarde lo mismo cuando el correo no está registrado.
+ */
+const HASH_SEÑUELO =
+  "scrypt$16384$8$1$00000000000000000000000000000000$" + "0".repeat(128);

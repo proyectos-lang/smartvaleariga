@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint",
     "db:check": "node --env-file=.env.local scripts/verificar-supabase.mjs",
+    "db:bundle": "node scripts/empaquetar-migraciones.mjs",
+    "usuarios:crear": "node --env-file=.env.local scripts/crear-usuario.mjs",
+    "test:negocio": "node --env-file=.env.local scripts/probar-negocio.mjs",
     "db:link": "supabase link",
     "db:new": "supabase migration new",
     "db:push": "supabase db push",
@@ -18,7 +21,6 @@
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.1",
-    "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -31,6 +33,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-qr-code": "^2.2.0",
+    "server-only": "^0.0.1",
     "sharp": "^0.35.3",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"

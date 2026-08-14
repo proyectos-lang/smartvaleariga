@@ -1,50 +1,49 @@
 /**
- * Comprobación de la conexión con Supabase.
+ * Comprobación de la conexión y del cierre de seguridad de `smartvale`.
  *
  *   npm run db:check
  *
- * Verifica, sin escribir nada: que las variables estén completas, que el
- * servicio de autenticación responda, qué esquemas están expuestos y qué
- * tablas hay en el esquema de la aplicación.
+ * No escribe nada. Verifica que las variables estén, que el esquema esté
+ * expuesto y poblado, y —lo más importante— que la API pública NO pueda
+ * leerlo: toda la protección del esquema depende de eso.
  */
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const clavePublica =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const claveServicio = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 // Debe coincidir con ESQUEMA en src/lib/supabase/env.ts
 const esquema = "smartvale";
 
 const ok = (m) => console.log(`  [ok] ${m}`);
 const mal = (m) => console.log(`  [!!] ${m}`);
 
-if (!url || !clavePublica) {
-  mal("Faltan NEXT_PUBLIC_SUPABASE_URL o la clave pública en .env.local");
+if (!url || !claveServicio) {
+  mal("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.local");
   process.exit(1);
 }
 
-const cabeceras = (clave) => ({
-  apikey: clave,
-  Authorization: `Bearer ${clave}`,
-});
+const servicio = {
+  apikey: claveServicio,
+  Authorization: `Bearer ${claveServicio}`,
+};
 
 console.log(`\nProyecto: ${url}`);
 console.log(`Esquema:  ${esquema}\n`);
 
 let fallos = 0;
 
-// 1. Autenticación
-console.log("Autenticación");
+// ── 1. La API responde con la clave de servicio ──────────────────────────
+console.log("Conexión");
+let spec = null;
 try {
-  const r = await fetch(`${url}/auth/v1/health`, {
-    headers: cabeceras(clavePublica),
+  const r = await fetch(`${url}/rest/v1/`, {
+    headers: { ...servicio, "Accept-Profile": esquema },
   });
-  const j = await r.json();
   if (r.ok) {
-    ok(`GoTrue ${j.version}`);
+    spec = await r.json();
+    ok("PostgREST responde con la clave de servicio");
   } else {
-    mal(`respondió ${r.status}`);
+    mal(`PostgREST respondió ${r.status}`);
     fallos++;
   }
 } catch (e) {
@@ -52,11 +51,11 @@ try {
   fallos++;
 }
 
-// 2. Esquemas expuestos — PostgREST los enumera al rechazar uno inválido
+// ── 2. El esquema está expuesto ──────────────────────────────────────────
 console.log("\nEsquemas expuestos en la API");
 try {
   const r = await fetch(`${url}/rest/v1/_sondeo?select=*`, {
-    headers: { ...cabeceras(clavePublica), "Accept-Profile": "__sondeo__" },
+    headers: { ...servicio, "Accept-Profile": "__sondeo__" },
   });
   const j = await r.json();
   const lista = /schemas are exposed: (.+)$/.exec(j.hint ?? "")?.[1];
@@ -75,33 +74,65 @@ try {
   fallos++;
 }
 
-// 3. Tablas del esquema de la aplicación
-console.log(`\nTablas en '${esquema}'`);
-if (!claveServicio) {
-  mal("sin SUPABASE_SERVICE_ROLE_KEY no se puede leer el catálogo");
-} else {
-  try {
-    const r = await fetch(`${url}/rest/v1/`, {
-      headers: { ...cabeceras(claveServicio), "Accept-Profile": esquema },
-    });
-    const spec = await r.json();
-    const rutas = Object.keys(spec.paths ?? {}).filter((p) => p !== "/");
-    const tablas = rutas.filter((p) => !p.startsWith("/rpc/"));
-    const funciones = rutas.filter((p) => p.startsWith("/rpc/"));
+// ── 3. Contenido del esquema ─────────────────────────────────────────────
+console.log(`\nContenido de '${esquema}'`);
+if (spec) {
+  const rutas = Object.keys(spec.paths ?? {}).filter((p) => p !== "/");
+  const tablas = rutas.filter((p) => !p.startsWith("/rpc/"));
+  const funciones = rutas.filter((p) => p.startsWith("/rpc/"));
 
-    if (!rutas.length) {
-      ok("el esquema está vacío — todavía no hay migraciones aplicadas");
-    } else {
-      ok(`${tablas.length} tablas/vistas, ${funciones.length} funciones`);
-      for (const t of tablas) console.log(`       ${t.slice(1)}`);
+  if (!rutas.length) {
+    mal("el esquema está vacío — aplica supabase/aplicar.sql en el SQL Editor");
+    fallos++;
+  } else {
+    ok(`${tablas.length} tablas y vistas, ${funciones.length} funciones`);
+    for (const t of tablas) console.log(`       ${t.slice(1)}`);
+
+    const esperadas = [
+      "usuarios",
+      "sesiones",
+      "tiendas",
+      "rangos",
+      "contactos",
+      "vales",
+      "redenciones",
+      "configuracion",
+    ];
+    const faltantes = esperadas.filter((t) => !tablas.includes(`/${t}`));
+    if (faltantes.length) {
+      mal(`faltan tablas: ${faltantes.join(", ")}`);
+      fallos++;
     }
-  } catch (e) {
-    mal(e.message);
+  }
+} else {
+  mal("no se pudo leer el catálogo");
+}
+
+// ── 4. El esquema NO es alcanzable sin la clave de servicio ──────────────
+// Es la comprobación que sostiene todo el modelo de seguridad: si esto
+// pasara, cualquiera podría leer los vales desde el navegador.
+console.log("\nCierre de seguridad");
+try {
+  const r = await fetch(`${url}/rest/v1/usuarios?select=id&limit=1`, {
+    headers: { "Accept-Profile": esquema },
+  });
+
+  if (r.status === 401 || r.status === 403) {
+    ok(`sin credenciales la API responde ${r.status}: el esquema está cerrado`);
+  } else if (r.status === 404) {
+    ok("sin credenciales no hay acceso (404): el esquema está cerrado");
+  } else {
+    const cuerpo = await r.text();
+    mal(`¡ALERTA! sin credenciales la API respondió ${r.status}`);
+    mal(`respuesta: ${cuerpo.slice(0, 200)}`);
     fallos++;
   }
+} catch (e) {
+  mal(e.message);
+  fallos++;
 }
 
 console.log(
-  fallos ? `\n${fallos} problema(s) encontrados.\n` : "\nConexión correcta.\n",
+  fallos ? `\n${fallos} problema(s) encontrados.\n` : "\nTodo correcto.\n",
 );
 process.exit(fallos ? 1 : 0);

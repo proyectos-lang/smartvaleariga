@@ -1,53 +1,38 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "./types";
-import { supabaseEnv, supabaseServiceKey, type EsquemaApp } from "./env";
+import { supabaseEnv, type EsquemaApp } from "./env";
 
 /**
- * Cliente de Supabase para Server Components, Server Actions y Route Handlers.
- * Respeta las políticas RLS del usuario autenticado.
+ * Cliente único de Supabase, con la clave de servicio y apuntando a
+ * `smartvale`.
  *
- * Siempre crear uno nuevo por request: nunca guardarlo en una variable global.
+ * **Solo servidor.** Importar este módulo desde un componente `"use client"`
+ * filtraría la clave de servicio al bundle del navegador. Toda lectura y
+ * escritura pasa por Server Components, Server Actions o Route Handlers.
  *
- * Las consultas apuntan al esquema `smartvale`. Para leer del ERP en `public`
- * (productos, clientes, tiendas, usuarios) usar `.schema("public")` en la
- * consulta concreta.
+ * La autorización (quién puede ver o hacer qué) se aplica en la capa de
+ * servidor, en `src/lib/auth/guardas.ts`: la base de datos no puede aplicarla
+ * porque sin Supabase Auth no existe `auth.uid()`.
  */
-export async function createClient() {
-  const { url, key, esquema } = supabaseEnv();
-  const cookieStore = await cookies();
 
-  return createServerClient<Database, EsquemaApp>(url, key, {
+type ClienteSmartVale = SupabaseClient<Database, EsquemaApp>;
+
+let cliente: ClienteSmartVale | null = null;
+
+export function db(): ClienteSmartVale {
+  if (cliente) return cliente;
+
+  const { url, claveServicio, esquema } = supabaseEnv();
+
+  cliente = createClient<Database, EsquemaApp>(url, claveServicio, {
     db: { schema: esquema },
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
-          }
-        } catch {
-          // Los Server Components no pueden escribir cookies; el proxy ya
-          // refresca la sesión, así que ignorar aquí es seguro.
-        }
-      },
+    auth: {
+      // No hay usuarios de Supabase Auth: nada que persistir ni que refrescar.
+      persistSession: false,
+      autoRefreshToken: false,
     },
   });
-}
 
-/**
- * Cliente con privilegios de servicio: ignora RLS.
- * Usar solo en el servidor y solo cuando de verdad haga falta
- * (webhooks, tareas programadas, migraciones de datos).
- */
-export function createAdminClient() {
-  const { url, esquema } = supabaseEnv();
-
-  return createServerClient<Database, EsquemaApp>(url, supabaseServiceKey(), {
-    db: { schema: esquema },
-    cookies: { getAll: () => [], setAll: () => {} },
-  });
+  return cliente;
 }

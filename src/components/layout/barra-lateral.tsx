@@ -3,16 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 
 import { MarcaCompacta } from "@/components/marca/logotipo";
-import { NAVEGACION, itemActivo } from "@/lib/navegacion";
+import { navegacionDe, itemActivo } from "@/lib/navegacion";
+import type { RolUsuario } from "@/lib/supabase/types";
+import { iniciales } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type UsuarioSesion = {
   nombre: string;
-  iniciales: string;
-  detalle: string;
+  rol: RolUsuario;
+  tienda: string | null;
 };
 
 /** Rombo de 45° que marca cada elemento del menú. */
@@ -30,42 +32,50 @@ function Rombo({ activo }: { activo: boolean }) {
 export function BarraLateral({
   usuario,
   contadores = {},
-  onNuevoVale,
+  abierta,
+  onCerrar,
   onSalir,
 }: {
   usuario: UsuarioSesion;
-  /** Insignias numéricas por nombre de item, p. ej. `{ "Vales digitales": 24 }`. */
+  /** Insignias por nombre de item, p. ej. `{ Vales: 24 }`. */
   contadores?: Record<string, number>;
-  onNuevoVale?: () => void;
+  /** Solo aplica en móvil: en escritorio la barra siempre está visible. */
+  abierta?: boolean;
+  onCerrar?: () => void;
   onSalir?: () => void;
 }) {
   const pathname = usePathname();
   const activo = itemActivo(pathname);
+  const grupos = navegacionDe(usuario.rol);
 
-  const [plegados, setPlegados] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(
-      NAVEGACION.map((g) => [g.etiqueta, Boolean(g.plegadoPorDefecto)]),
-    ),
-  );
-
+  const [plegados, setPlegados] = useState<Record<string, boolean>>({});
   const alternar = (etiqueta: string) =>
     setPlegados((s) => ({ ...s, [etiqueta]: !s[etiqueta] }));
 
   return (
-    <aside className="ariga-sidebar border-gold/16 sticky top-0 flex h-screen w-[262px] shrink-0 flex-col gap-[26px] border-r px-[18px] py-[26px]">
-      <MarcaCompacta className="px-2" />
-
-      <button
-        type="button"
-        onClick={onNuevoVale}
-        className="border-gold/40 bg-gold/10 text-gold-light hover:bg-gold/20 rounded-card tracking-field flex cursor-pointer items-center gap-[10px] border px-[14px] py-3 text-[11px] font-semibold transition-colors"
-      >
-        <span className="bg-gold inline-block size-[9px] rotate-45" />
-        NUEVO VALE
-      </button>
+    <aside
+      className={cn(
+        "ariga-sidebar border-gold/16 flex w-[262px] shrink-0 flex-col gap-[26px] border-r px-[18px] py-[26px]",
+        // Móvil: cajón deslizante sobre el contenido.
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-250 lg:static lg:z-auto lg:translate-x-0",
+        "lg:sticky lg:top-0 lg:h-screen",
+        abierta ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <MarcaCompacta className="px-2" />
+        <button
+          type="button"
+          onClick={onCerrar}
+          aria-label="Cerrar menú"
+          className="text-bone/40 hover:text-bone cursor-pointer lg:hidden"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
       <nav className="flex flex-1 flex-col gap-[22px] overflow-y-auto">
-        {NAVEGACION.map((grupo) => {
+        {grupos.map((grupo) => {
           const plegado = plegados[grupo.etiqueta];
           return (
             <div key={grupo.etiqueta} className="flex flex-col gap-[3px]">
@@ -92,6 +102,7 @@ export function BarraLateral({
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onCerrar}
                       className={cn(
                         "rounded-card flex w-full items-center gap-[11px] px-[11px] py-[10px] text-[13px] font-medium transition-colors duration-150",
                         esActivo
@@ -115,15 +126,17 @@ export function BarraLateral({
       </nav>
 
       <div className="border-bone/8 flex items-center gap-[11px] border-t pt-4">
-        <span className="border-gold/50 font-display text-gold-light flex size-[34px] items-center justify-center rounded-full border text-xs font-medium">
-          {usuario.iniciales}
+        <span className="border-gold/50 font-display text-gold-light flex size-[34px] shrink-0 items-center justify-center rounded-full border text-xs font-medium">
+          {iniciales(usuario.nombre)}
         </span>
-        <div className="flex flex-1 flex-col gap-[2px]">
-          <span className="text-bone text-xs leading-none font-medium">
+        <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+          <span className="text-bone truncate text-xs leading-none font-medium">
             {usuario.nombre}
           </span>
-          <span className="text-bone/40 text-[10px] leading-none">
-            {usuario.detalle}
+          <span className="text-bone/40 truncate text-[10px] leading-none">
+            {[usuario.tienda, usuario.rol === "admin" ? "Administrador" : "Vendedora"]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
         <button

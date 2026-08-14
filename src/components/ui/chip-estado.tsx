@@ -1,23 +1,22 @@
+import type { EstadoVale } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 /**
- * Estados de un vale. Cuando definamos el modelo real, este tipo debe
- * coincidir con el enum de la base de datos.
+ * Estado del vale. Se deriva en SQL (`vw_vales_detalle.estado`), no es una
+ * columna almacenada: un vale vence por el paso del tiempo, sin que nadie
+ * tenga que actualizarlo.
  */
-export type EstadoVale = "activo" | "canjeado" | "vencido" | "cancelado";
 
 const ESTILOS: Record<EstadoVale, string> = {
   activo: "bg-gold/16 text-gold-deep",
-  canjeado: "bg-ink/6 text-ink/55",
-  vencido: "bg-clay/10 text-clay",
-  cancelado: "bg-ink/6 text-ink/35 line-through",
+  vencido: "bg-ink/6 text-ink/50",
+  anulado: "bg-clay/10 text-clay",
 };
 
 const ETIQUETAS: Record<EstadoVale, string> = {
-  activo: "ACTIVO",
-  canjeado: "CANJEADO",
+  activo: "VIGENTE",
   vencido: "VENCIDO",
-  cancelado: "CANCELADO",
+  anulado: "ANULADO",
 };
 
 export function ChipEstado({
@@ -30,7 +29,7 @@ export function ChipEstado({
   return (
     <span
       className={cn(
-        "rounded-field justify-self-start px-[10px] py-1 text-[9.5px] font-semibold tracking-[0.1em]",
+        "rounded-field shrink-0 px-[10px] py-1 text-[9.5px] font-semibold tracking-[0.1em]",
         ESTILOS[estado],
         className,
       )}

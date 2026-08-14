@@ -1,151 +1,210 @@
 import Link from "next/link";
+import { QrCode, ScanLine } from "lucide-react";
 
 import { ChipEstado } from "@/components/ui/chip-estado";
-import {
-  Tarjeta,
-  TarjetaEncabezado,
-  TarjetaIndicador,
-} from "@/components/ui/tarjeta";
-import { fecha, iniciales, monedaCorta } from "@/lib/format";
-import {
-  CLIENTES_DEMO,
-  INDICADORES_DEMO,
-  VALES_DEMO,
-  VALE_EN_CURSO_DEMO,
-} from "@/lib/datos-demo";
+import { Tarjeta, TarjetaIndicador } from "@/components/ui/tarjeta";
+import { Vacio } from "@/components/ui/vacio";
+import { ChipTipo } from "@/components/vales/chip-tipo";
+import { requerirSesion } from "@/lib/auth/guardas";
+import { alcanceDe } from "@/lib/auth/guardas";
+import { metricasGenerales } from "@/lib/datos/metricas";
+import { cupoDe, valesRecientes } from "@/lib/datos/vales";
+import { fecha, monedaCompacta, monedaCorta } from "@/lib/format";
 
-/** Rejilla compartida por la cabecera y las filas de la tabla de vales. */
-const COLUMNAS =
-  "grid-cols-[minmax(74px,96px)_minmax(150px,1.4fr)_minmax(66px,90px)_minmax(76px,108px)_minmax(74px,90px)]";
+export default async function PaginaPanel() {
+  const sesion = await requerirSesion();
+  const alcance = alcanceDe(sesion);
 
-export default function PaginaPanel() {
-  const v = VALE_EN_CURSO_DEMO;
-  const avance = Math.round((v.abonado / v.total) * 100);
+  const [metricas, recientes, cupo] = await Promise.all([
+    metricasGenerales(alcance),
+    valesRecientes(alcance, 6),
+    sesion.rol === "vendedora" ? cupoDe(sesion.usuarioId) : Promise.resolve(null),
+  ]);
+
+  const conversion =
+    metricas.tasa_conversion === null ? "—" : `${metricas.tasa_conversion}%`;
 
   return (
     <>
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {INDICADORES_DEMO.map((i) => (
-          <TarjetaIndicador
-            key={i.etiqueta}
-            etiqueta={i.etiqueta}
-            valor={i.valor}
-            nota={i.nota}
-          />
-        ))}
-      </section>
-
-      <section className="grid items-start gap-5 xl:grid-cols-[minmax(560px,1.62fr)_minmax(280px,1fr)]">
-        {/* Vales recientes */}
-        <Tarjeta className="min-w-0 overflow-x-auto">
-          <TarjetaEncabezado titulo="Vales recientes">
-            <div className="flex gap-[6px]">
-              <span className="bg-ink text-gold-light rounded-field px-3 py-[6px] text-[10px] font-medium tracking-[0.12em]">
-                TODOS
-              </span>
-              <span className="border-ink/12 text-ink/55 rounded-field border px-3 py-[6px] text-[10px] font-medium tracking-[0.12em]">
-                ACTIVOS
-              </span>
-              <span className="border-ink/12 text-ink/55 rounded-field border px-3 py-[6px] text-[10px] font-medium tracking-[0.12em]">
-                CANJEADOS
-              </span>
-            </div>
-          </TarjetaEncabezado>
-
-          <div
-            className={`bg-ink/2 text-ink/42 grid ${COLUMNAS} gap-3 px-[22px] py-3 text-[9px] font-medium tracking-[0.18em]`}
-          >
-            <span>FOLIO</span>
-            <span>CLIENTE</span>
-            <span>MONTO</span>
-            <span>VENCE</span>
-            <span>ESTADO</span>
-          </div>
-
-          {VALES_DEMO.map((vale) => (
-            <div
-              key={vale.folio}
-              className={`border-ink/6 hover:bg-gold/5 grid ${COLUMNAS} items-center gap-3 border-t px-[22px] py-[15px] text-[12.5px] transition-colors`}
-            >
-              <span className="text-gold-dark font-mono text-[11.5px] font-medium">
-                {vale.folio}
-              </span>
-              <span className="flex flex-col gap-[2px]">
-                <span className="font-medium">{vale.cliente}</span>
-                <span className="text-ink/42 text-[11px]">{vale.pieza}</span>
-              </span>
-              <span className="font-semibold">{monedaCorta(vale.monto)}</span>
-              <span className="text-ink/55">{fecha(vale.vence)}</span>
-              <ChipEstado estado={vale.estado} />
-            </div>
-          ))}
-
-          <div className="border-ink/6 text-ink/45 flex justify-between border-t px-[22px] py-[14px] text-[11px]">
-            <span>Mostrando {VALES_DEMO.length} de 148 vales</span>
-            <Link href="/panel/vales" className="text-gold-dark">
-              Ver todos
-            </Link>
-          </div>
-        </Tarjeta>
-
-        <div className="flex flex-col gap-5">
-          {/* Vale en curso */}
-          <div className="bg-ink text-bone rounded-card relative overflow-hidden p-[22px]">
-            <div className="border-gold/30 absolute top-[-90px] right-[-110px] size-[220px] rotate-45 border" />
-            <span className="text-gold-light/70 tracking-label text-[9px] leading-none font-medium">
-              VALE EN CURSO
+      {/* Acciones principales: es lo que la vendedora hace todo el día */}
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/panel/emitir"
+          className="bg-ink text-bone rounded-card relative flex items-center gap-4 overflow-hidden p-5 transition-colors hover:bg-[#16151a]"
+        >
+          <div className="border-gold/25 absolute -top-16 -right-16 size-40 rotate-45 border" />
+          <span className="border-gold/40 text-gold-light flex size-11 shrink-0 items-center justify-center rounded-full border">
+            <QrCode size={19} />
+          </span>
+          <span className="relative flex flex-col gap-1">
+            <span className="font-display text-gold-light text-xl leading-none">
+              Emitir vale
             </span>
-            <div className="mt-4 mb-[18px] flex flex-col gap-1">
-              <span className="font-display text-gold-light text-[34px] leading-none">
-                {monedaCorta(v.total)}
-              </span>
-              <span className="text-bone/50 text-xs">
-                Folio {v.folio} · {v.pieza}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="bg-bone/14 h-[3px] rounded-sm">
-                <div
-                  className="bg-gold h-[3px] rounded-sm transition-[width] duration-500"
-                  style={{ width: `${avance}%` }}
-                />
-              </div>
-              <span className="text-bone/45 text-[11px]">
-                {monedaCorta(v.abonado)} abonados · {v.pagosHechos} de{" "}
-                {v.pagosTotales} pagos
-              </span>
-            </div>
-            <button className="border-gold/45 text-gold-light hover:bg-gold/14 rounded-field tracking-action mt-5 w-full cursor-pointer border p-3 text-[10.5px] font-semibold transition-colors">
-              REGISTRAR ABONO
-            </button>
-          </div>
+            <span className="text-bone/45 text-[12px]">
+              Cliente existente, referido o visitante
+            </span>
+          </span>
+        </Link>
 
-          {/* Clientes nuevos */}
-          <Tarjeta className="flex flex-col gap-4 px-[22px] py-5">
-            <h3 className="font-display m-0 text-lg leading-none font-normal">
-              Clientes nuevos
-            </h3>
-            {CLIENTES_DEMO.map((c) => (
-              <div key={c.nombre} className="flex items-center gap-3">
-                <span className="bg-gold/14 font-display text-gold-dark flex size-8 items-center justify-center rounded-full text-xs font-medium">
-                  {iniciales(c.nombre)}
-                </span>
-                <span className="flex flex-1 flex-col gap-[2px]">
-                  <span className="text-[12.5px] font-medium">{c.nombre}</span>
-                  <span className="text-ink/42 text-[11px]">{c.detalle}</span>
-                </span>
-                <span className="text-ink/35 text-[11px]">{c.cuando}</span>
-              </div>
-            ))}
-            <Link
-              href="/panel/clientes"
-              className="border-ink/14 text-ink/70 hover:border-gold hover:text-ink rounded-field tracking-field border p-[11px] text-center text-[10.5px] font-medium transition-colors"
-            >
-              REGISTRAR CLIENTE
-            </Link>
-          </Tarjeta>
-        </div>
+        <Link
+          href="/panel/redimir"
+          className="bg-paper border-ink/7 rounded-card hover:border-gold flex items-center gap-4 border p-5 transition-colors"
+        >
+          <span className="border-gold/45 text-gold-dark flex size-11 shrink-0 items-center justify-center rounded-full border">
+            <ScanLine size={19} />
+          </span>
+          <span className="flex flex-col gap-1">
+            <span className="font-display text-xl leading-none">
+              Redimir vale
+            </span>
+            <span className="text-ink/45 text-[12px]">
+              Escanea el QR o escribe el código
+            </span>
+          </span>
+        </Link>
       </section>
+
+      {/* Cupo del rango: si se agota, no se pueden emitir vales */}
+      {cupo ? <AvisoCupo cupo={cupo} /> : null}
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <TarjetaIndicador
+          etiqueta="VALES EMITIDOS"
+          valor={metricas.vales_emitidos}
+          nota={`${metricas.vales_activos} vigentes`}
+        />
+        <TarjetaIndicador
+          etiqueta="REDENCIONES"
+          valor={metricas.redenciones}
+          nota={`${metricas.vales_con_compra} vales con compra`}
+        />
+        <TarjetaIndicador
+          etiqueta="CONVERSIÓN"
+          valor={conversion}
+          nota="Vales que generaron compra"
+        />
+        <TarjetaIndicador
+          etiqueta="VENTA GENERADA"
+          valor={monedaCompacta(metricas.ingreso_total)}
+          nota={
+            metricas.ticket_promedio
+              ? `Ticket ${monedaCorta(metricas.ticket_promedio)}`
+              : "Sin compras aún"
+          }
+        />
+      </section>
+
+      <Tarjeta className="min-w-0 overflow-hidden">
+        <div className="border-ink/7 flex items-center justify-between border-b px-5 py-4">
+          <h3 className="font-display m-0 text-lg leading-none font-normal">
+            Vales recientes
+          </h3>
+          <Link href="/panel/vales" className="text-gold-dark text-[12px]">
+            Ver todos
+          </Link>
+        </div>
+
+        {recientes.length === 0 ? (
+          <Vacio
+            titulo="Todavía no hay vales"
+            descripcion="El primero que emitas aparecerá aquí con su código y su estado."
+            accion={
+              <Link
+                href="/panel/emitir"
+                className="bg-ink text-gold-light rounded-field tracking-action mt-2 px-5 py-3 text-[11px] font-semibold"
+              >
+                EMITIR EL PRIMERO
+              </Link>
+            }
+          />
+        ) : (
+          <ul className="m-0 list-none p-0">
+            {recientes.map((vale) => (
+              <li
+                key={vale.id}
+                className="border-ink/6 flex items-center gap-3 border-t px-5 py-[14px] first:border-t-0"
+              >
+                <ChipTipo tipo={vale.tipo} />
+                <Link
+                  href={`/panel/vales/${vale.codigo}`}
+                  className="text-gold-dark shrink-0 font-mono text-[11.5px] font-medium"
+                >
+                  {vale.codigo}
+                </Link>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[12.5px] font-medium">
+                    {vale.portador}
+                  </span>
+                  <span className="text-ink/42 truncate text-[11px]">
+                    {vale.total_redenciones > 0
+                      ? `${vale.total_redenciones} redención${vale.total_redenciones > 1 ? "es" : ""} · ${monedaCorta(vale.ingreso_generado)}`
+                      : `Vence ${fecha(vale.fecha_vencimiento)}`}
+                  </span>
+                </span>
+                <ChipEstado estado={vale.estado} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Tarjeta>
     </>
+  );
+}
+
+/** Aviso de cupo restante. Se vuelve alarma cuando el bloque se agota. */
+function AvisoCupo({
+  cupo,
+}: {
+  cupo: NonNullable<Awaited<ReturnType<typeof cupoDe>>>;
+}) {
+  if (cupo.sinRango) {
+    return (
+      <p className="border-clay/25 bg-clay/6 text-clay rounded-card m-0 border px-4 py-3 text-[13px] leading-relaxed">
+        Todavía no tienes un rango de vales asignado. Contacta al administrador
+        para que te asigne un bloque.
+      </p>
+    );
+  }
+
+  if (cupo.restantes === 0) {
+    return (
+      <p className="border-clay/25 bg-clay/6 text-clay rounded-card m-0 border px-4 py-3 text-[13px] leading-relaxed">
+        Ha alcanzado el límite de su rango asignado. Contacte al administrador
+        para asignar un nuevo bloque.
+      </p>
+    );
+  }
+
+  const actual = cupo.actual;
+  const total = actual ? actual.rango_fin - actual.rango_inicio + 1 : 0;
+  const usados = actual?.emitidos ?? 0;
+  const avance = total ? Math.round((usados / total) * 100) : 0;
+  const escaso = cupo.restantes <= 10;
+
+  return (
+    <Tarjeta className="flex flex-col gap-3 px-5 py-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
+          CUPO DE TU RANGO
+        </span>
+        <span
+          className={escaso ? "text-clay text-[12px]" : "text-ink/50 text-[12px]"}
+        >
+          {actual
+            ? `Bloque ${actual.rango_inicio}–${actual.rango_fin}`
+            : "Sin bloque en curso"}
+        </span>
+      </div>
+      <div className="bg-ink/8 h-[3px] rounded-sm">
+        <div
+          className={`h-[3px] rounded-sm ${escaso ? "bg-clay" : "bg-gold"}`}
+          style={{ width: `${avance}%` }}
+        />
+      </div>
+      <span className="text-ink/55 text-[12px]">
+        Te quedan <strong className="font-semibold">{cupo.restantes}</strong>{" "}
+        vales por emitir de {total}.
+      </span>
+    </Tarjeta>
   );
 }
