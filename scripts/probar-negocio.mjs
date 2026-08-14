@@ -474,7 +474,7 @@ async function probarA4Referidos(a2) {
       p_tipo: "A4",
       p_nombre: `Origen falso ${MARCA}`,
       p_telefono: "5218112344003",
-      p_vale_origen: "AR-A2-999999",
+      p_vale_origen: "AR-A2-V000-00000",
     }),
     "SV009",
   );
@@ -487,6 +487,32 @@ async function probarA4Referidos(a2) {
       p_nombre: `Cadena ${MARCA}`,
       p_telefono: "5218112344004",
       p_vale_origen: a4.codigo,
+    }),
+    "SV009",
+  );
+
+  // Un vale anulado no sirve de referencia: quien lo enseñó ya no tiene
+  // nada válido que enseñar.
+  const paraAnular = await rpc("fn_emitir_vale", {
+    p_usuario_id: creado.usuarioId,
+    p_tipo: "A2",
+    p_nombre: `Anulable ${MARCA}`,
+    p_telefono: "5218112344006",
+    p_origen: "Prueba de anulación",
+  });
+  await rpc("fn_anular_vale", {
+    p_codigo: paraAnular.codigo,
+    p_usuario_id: creado.usuarioId,
+    p_motivo: "Prueba automatizada",
+  });
+  await debeFallar(
+    "un vale anulado no sirve como referidor",
+    rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A4",
+      p_nombre: `Desde anulado ${MARCA}`,
+      p_telefono: "5218112344007",
+      p_vale_origen: paraAnular.codigo,
     }),
     "SV009",
   );
@@ -561,7 +587,9 @@ async function probarAutorregistroA4(a1) {
       p_token: tienda.token,
       p_nombre: `Malo ${MARCA}`,
       p_telefono: "5218112399011",
-      p_codigo_referidor: "AR-A1-000000",
+      // V000 no lo puede generar nadie: `fn_prefijo_vendedora` rellena el id
+      // a tres dígitos y los ids arrancan en 1.
+      p_codigo_referidor: "AR-A1-V000-00000",
     }),
     "SV009",
   );
