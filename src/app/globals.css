@@ -23,6 +23,28 @@
   --color-clay: #8e4534; /* vencido / error */
   --color-sage: #4a6b4f; /* canjeado / éxito */
 
+  /* ── Series de datos ───────────────────────────────────────────────────
+     Identidad de cada tipo de vale en gráficas y distintivos. El color va
+     con la entidad, no con su posición: A1 es siempre ámbar aunque quede
+     tercero en un ranking.
+
+     Estos tres pasan las seis comprobaciones de color sobre fondo blanco
+     (scripts/validate_palette.js): banda de luminosidad, piso de croma,
+     ΔE 19.7 bajo daltonismo, ΔE 25.1 con visión normal y contraste ≥3:1.
+     No sustituir un valor sin volver a validarlos como conjunto. */
+  --color-serie-a1: #a17916;
+  --color-serie-a2: #215ba3;
+  --color-serie-a3: #9e3b24;
+
+  /* Pasos oscuros de los mismos tonos, para texto sobre su propio lavado. */
+  --color-serie-a1-texto: #7a5b0f;
+  --color-serie-a2-texto: #1a4a85;
+  --color-serie-a3-texto: #7e2e1b;
+
+  /* Cromo de las gráficas: retrocede, nunca compite con los datos. */
+  --color-rejilla: #e7e3da;
+  --color-eje: #cdc7bb;
+
   /* Tipografía */
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
