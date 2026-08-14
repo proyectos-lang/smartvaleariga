@@ -6,6 +6,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { verificarContrasena } from "@/lib/auth/contrasena";
+import {
+  esIdentificadorValido,
+  MENSAJE_IDENTIFICADOR,
+  normalizarIdentificador,
+} from "@/lib/auth/identificador";
 import { abrirSesion, cerrarSesionActual } from "@/lib/auth/sesion";
 import { db } from "@/lib/supabase/server";
 import { haySupabase } from "@/lib/supabase/env";
@@ -13,9 +18,8 @@ import { haySupabase } from "@/lib/supabase/env";
 const Credenciales = z.object({
   correo: z
     .string()
-    .trim()
-    .toLowerCase()
-    .pipe(z.email("Escribe un correo válido.")),
+    .transform(normalizarIdentificador)
+    .refine(esIdentificadorValido, MENSAJE_IDENTIFICADOR),
   contrasena: z.string().min(1, "Escribe tu contraseña."),
   redirect: z.string().optional(),
 });
@@ -74,9 +78,12 @@ export async function iniciarSesion(
   const cabeceras = await headers();
   await abrirSesion(usuario.id, cabeceras.get("user-agent"));
 
-  const destino = analisis.data.redirect?.startsWith("/")
-    ? analisis.data.redirect
-    : "/panel";
+  // Solo rutas internas: `//host` sería una redirección abierta hacia fuera.
+  const solicitado = analisis.data.redirect;
+  const destino =
+    solicitado?.startsWith("/") && !solicitado.startsWith("//")
+      ? solicitado
+      : "/panel";
 
   revalidatePath("/", "layout");
   redirect(destino);

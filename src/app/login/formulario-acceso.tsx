@@ -1,16 +1,18 @@
 "use client";
 
 import { useActionState } from "react";
-import { useSearchParams } from "next/navigation";
 
 import { Boton } from "@/components/ui/boton";
 import { Campo } from "@/components/ui/campo";
 import { iniciarSesion, type EstadoAuth } from "@/lib/acciones/auth";
 
-export function FormularioAcceso() {
-  const parametros = useSearchParams();
-  const redireccion = parametros.get("redirect") ?? "/panel";
-
+/**
+ * `redireccion` llega como prop desde el Server Component en lugar de leerse
+ * con `useSearchParams`: así el formulario forma parte del HTML que manda el
+ * servidor. Con el hook, React lo dejaba fuera del render de servidor y la
+ * pantalla de acceso solo aparecía después de hidratar.
+ */
+export function FormularioAcceso({ redireccion }: { redireccion: string }) {
   const [estado, accion, enviando] = useActionState<EstadoAuth, FormData>(
     iniciarSesion,
     null,
@@ -34,11 +36,13 @@ export function FormularioAcceso() {
 
       <div className="flex flex-col gap-[18px]">
         <Campo
-          etiqueta="CORREO"
+          etiqueta="CORREO O USUARIO"
           name="correo"
-          type="email"
-          autoComplete="email"
-          placeholder="nombre@ariga.com"
+          type="text"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="admin o nombre@ariga.com"
           required
         />
         <Campo

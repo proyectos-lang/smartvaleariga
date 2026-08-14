@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 
 import { Logotipo } from "@/components/marca/logotipo";
@@ -14,7 +13,18 @@ const CIFRAS = [
   { valor: "99.2%", etiqueta: "CANJE VÁLIDO" },
 ];
 
-export default function PaginaLogin() {
+/** Solo se acepta una ruta interna: `//host` sería una redirección abierta. */
+function destinoSeguro(valor: string | string[] | undefined) {
+  if (typeof valor !== "string") return "/panel";
+  return valor.startsWith("/") && !valor.startsWith("//") ? valor : "/panel";
+}
+
+export default async function PaginaLogin({
+  searchParams,
+}: PageProps<"/login">) {
+  const params = await searchParams;
+  const redireccion = destinoSeguro(params.redirect);
+
   return (
     <div className="bg-ink text-bone grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
@@ -55,9 +65,7 @@ export default function PaginaLogin() {
 
       {/* Formulario */}
       <section className="bg-bone text-ink flex items-center justify-center p-8 sm:p-14">
-        <Suspense fallback={null}>
-          <FormularioAcceso />
-        </Suspense>
+        <FormularioAcceso redireccion={redireccion} />
       </section>
     </div>
   );

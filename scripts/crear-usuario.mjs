@@ -67,8 +67,15 @@ if (!["admin", "vendedora"].includes(rol)) {
   process.exit(1);
 }
 
-if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-  console.error(`Correo inválido: "${correo}".`);
+// Acepta correo o nombre de usuario corto. Debe coincidir con
+// src/lib/auth/identificador.ts.
+const ES_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ES_USUARIO = /^[a-z0-9][a-z0-9._+-]{1,63}$/;
+
+if (!ES_CORREO.test(correo) && !ES_USUARIO.test(correo)) {
+  console.error(
+    `Identificador inválido: "${correo}". Usa un correo o un nombre de usuario sin espacios.`,
+  );
   process.exit(1);
 }
 
