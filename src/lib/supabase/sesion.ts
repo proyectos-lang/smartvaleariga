@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 import type { Database } from "./types";
-import { hasSupabaseEnv, supabaseEnv } from "./env";
+import { hasSupabaseEnv, supabaseEnv, type EsquemaApp } from "./env";
 
 /** Rutas accesibles sin sesión iniciada. */
 const RUTAS_PUBLICAS = ["/login", "/auth"];
@@ -29,9 +29,10 @@ export async function actualizarSesion(request: NextRequest) {
   // debe poder levantarse antes de conectar Supabase.
   if (!hasSupabaseEnv()) return response;
 
-  const { url, anonKey } = supabaseEnv();
+  const { url, key, esquema } = supabaseEnv();
 
-  const supabase = createServerClient<Database>(url, anonKey, {
+  const supabase = createServerClient<Database, EsquemaApp>(url, key, {
+    db: { schema: esquema },
     cookies: {
       getAll() {
         return request.cookies.getAll();

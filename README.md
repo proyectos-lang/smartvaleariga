@@ -23,12 +23,23 @@ credenciales válidas, el middleware exige sesión real.
 
 ## Variables de entorno
 
-| Variable                        | Dónde se usa | Notas                                          |
-| ------------------------------- | ------------ | ---------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | cliente + servidor | Project Settings → API                   |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | cliente + servidor | Pública por diseño; RLS es la protección |
-| `SUPABASE_SERVICE_ROLE_KEY`     | solo servidor | Ignora RLS. En Vercel, marcar "Sensitive"     |
-| `NEXT_PUBLIC_SITE_URL`          | servidor      | Base de los enlaces codificados en el QR      |
+| Variable                               | Dónde se usa       | Notas                                          |
+| -------------------------------------- | ------------------ | ---------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`             | cliente + servidor | Project Settings → API                         |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | cliente + servidor | Clave pública nueva (`sb_publishable_…`). Preferida |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | cliente + servidor | Clave anon en JWT. Respaldo de la anterior     |
+| `SUPABASE_SERVICE_ROLE_KEY`            | solo servidor      | Ignora RLS. En Vercel, marcar "Sensitive"      |
+| `NEXT_PUBLIC_SITE_URL`                 | servidor           | Base de los enlaces codificados en el QR       |
+
+El esquema (`smartvale`) **no** es variable de entorno: es una constante en
+[env.ts](src/lib/supabase/env.ts), porque forma parte de los tipos que genera
+`npm run db:types`.
+
+Verificar la conexión en cualquier momento:
+
+```bash
+npm run db:check
+```
 
 ---
 
@@ -115,13 +126,38 @@ http://localhost:3000/api/vales/AR-2451/pdf
 
 ## Supabase
 
+### El proyecto está compartido — trabajamos en `smartvale`
+
+El proyecto `aijexrcfmakphpqihkig` **ya aloja el ERP de ARIGA** en el esquema
+`public`: 139 objetos entre tablas, vistas y funciones (productos, ventas,
+clientes, tiendas, inventario, comisiones, cursos, tickets…).
+
+Esta aplicación vive aparte, en el esquema **`smartvale`**, para no interferir.
+Los tres clientes de Supabase apuntan ahí por omisión. Para leer del ERP hay
+que pedirlo de forma explícita:
+
+```ts
+const supabase = await createClient();
+
+// esquema smartvale (por omisión)
+const { data: vales } = await supabase.from("vales").select();
+
+// esquema public — el ERP existente
+const { data: piezas } = await supabase.schema("public").from("productos").select();
+```
+
+Esquemas expuestos en la API: `public`, `graphql_public`, `smartvale`.
+
+### Comandos
+
 El CLI está instalado como dependencia de desarrollo:
 
 ```bash
+npm run db:check           # verifica conexión, esquemas expuestos y tablas
 npm run db:link            # enlaza con el proyecto remoto (pide el ref)
 npm run db:new nombre      # crea una migración vacía en supabase/migrations/
 npm run db:push            # aplica las migraciones al proyecto remoto
-npm run db:types           # regenera src/lib/supabase/types.ts desde el esquema
+npm run db:types           # regenera src/lib/supabase/types.ts desde smartvale
 ```
 
 Reglas de uso de los clientes:

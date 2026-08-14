@@ -1,24 +1,52 @@
 /**
- * Lectura centralizada de las variables de entorno de Supabase.
+ * Lectura centralizada de la configuración de Supabase.
  * Falla temprano y con un mensaje claro en lugar de reventar dentro del SDK.
  */
 
+/**
+ * Esquema de Postgres donde vive esta aplicación.
+ *
+ * El proyecto de Supabase es compartido: `public` ya aloja el ERP de ARIGA
+ * (productos, ventas, inventario, comisiones…). Los vales viven aparte, en
+ * `smartvale`, para no interferir con ese esquema.
+ *
+ * Es una constante y no una variable de entorno a propósito: el nombre del
+ * esquema forma parte de los tipos generados por `npm run db:types`, así que
+ * cambiarlo por ambiente rompería el tipado en lugar de configurarlo.
+ */
+export const ESQUEMA = "smartvale" as const;
+export type EsquemaApp = typeof ESQUEMA;
+
+/**
+ * Clave pública del proyecto. Se prefiere la `sb_publishable_…` (formato
+ * nuevo) y se cae a la `anon` en JWT por compatibilidad.
+ *
+ * Ambas referencias se escriben completas para que Next pueda sustituirlas
+ * en tiempo de compilación en el bundle del navegador.
+ */
+function clavePublica() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
 export function supabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = clavePublica();
 
-  if (!url || !anonKey) {
+  if (!url || !key) {
     throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. Copia .env.example a .env.local y llena los valores del proyecto de Supabase.",
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o la clave pública (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY). Copia .env.example a .env.local y llena los valores.",
     );
   }
 
-  return { url, anonKey };
+  return { url, key, esquema: ESQUEMA };
 }
 
 /**
- * Clave de servicio: solo para código que corre en el servidor
- * (route handlers, server actions, crons). Nunca importar desde el cliente.
+ * Clave de servicio: ignora RLS. Solo para código que corre en el servidor
+ * (route handlers, server actions, tareas programadas).
  */
 export function supabaseServiceKey() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,6 +62,7 @@ export function supabaseServiceKey() {
 export function hasSupabaseEnv() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
   );
 }
