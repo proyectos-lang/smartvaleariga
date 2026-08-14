@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─────────────────────────────────────────────────────────────
+   ARIGA · Sistema de diseño
+   Tokens extraídos del mockup en design/ARIGA App.dc.html
+   ───────────────────────────────────────────────────────────── */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  /* Superficies */
+  --color-ink: #0b0b0c; /* negro base / panel oscuro */
+  --color-ink-soft: #101013; /* degradado del sidebar */
+  --color-ink-raised: #26221b; /* hover de botón oscuro */
+  --color-bone: #f6f3ed; /* crema, fondo del área de trabajo */
+  --color-paper: #ffffff; /* tarjetas y campos */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Oro */
+  --color-gold: #c6a15b; /* acento principal */
+  --color-gold-light: #e7ce92; /* texto sobre oscuro */
+  --color-gold-dark: #9c7b36; /* texto sobre crema */
+  --color-gold-deep: #8a6a22; /* chips de estado */
+
+  /* Semánticos */
+  --color-clay: #8e4534; /* vencido / error */
+  --color-sage: #4a6b4f; /* canjeado / éxito */
+
+  /* Tipografía */
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+
+  /* Interletraje de la marca */
+  --tracking-brand: 0.42em;
+  --tracking-eyebrow: 0.28em;
+  --tracking-label: 0.24em;
+  --tracking-action: 0.18em;
+  --tracking-field: 0.16em;
+
+  /* Geometría: la marca usa esquinas casi rectas */
+  --radius-field: 2px;
+  --radius-card: 3px;
+  --radius-panel: 4px;
+
+  /* Movimiento */
+  --animate-rise: rise 0.5s ease both;
+  --animate-rise-fast: rise 0.28s ease both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  ::placeholder {
+    color: color-mix(in srgb, var(--color-ink) 32%, transparent);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-gold) 30%, transparent);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  /* Textura de líneas diagonales del panel de acceso */
+  .ariga-hatch {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 22px,
+      var(--color-gold) 22px 23px
+    );
+  }
+
+  /* Halo radial cálido detrás del logotipo */
+  .ariga-glow {
+    background: radial-gradient(120% 90% at 20% 10%, #1a1712 0%, #0b0b0c 62%);
+  }
+
+  .ariga-sidebar {
+    background: linear-gradient(180deg, var(--color-ink-soft) 0%, var(--color-ink) 100%);
+  }
 }
