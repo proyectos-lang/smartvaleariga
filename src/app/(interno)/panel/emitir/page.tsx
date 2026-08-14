@@ -38,7 +38,8 @@ const PUERTAS = [
     slug: "a3",
     titulo: "Visitante de tienda",
     descripcion: "Registro en el punto de venta",
-    detalle: "El cliente llega sin vale y se le genera uno al momento.",
+    detalle:
+      "El cliente escanea el QR de la tienda y se registra solo, o capturas tú sus datos.",
     Icono: Store,
   },
 ];

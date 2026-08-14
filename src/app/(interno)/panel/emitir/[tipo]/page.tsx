@@ -14,7 +14,12 @@ import {
 
 import { FormularioEmision } from "./formulario";
 
-const SLUGS: Record<string, TipoVale> = { a1: "A1", a2: "A2", a3: "A3" };
+/**
+ * A3 no está aquí: tiene pantalla propia en `emitir/a3`, porque su camino
+ * principal es que el cliente se registre solo desde el QR de la tienda.
+ * Next da precedencia al segmento estático, así que esta ruta nunca la ve.
+ */
+const SLUGS: Record<string, TipoVale> = { a1: "A1", a2: "A2" };
 
 export async function generateMetadata({
   params,
