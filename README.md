@@ -96,6 +96,29 @@ protegido**: es material interno.
 
 ---
 
+## Cómo se entrega el vale
+
+Tres salidas desde la ficha del vale:
+
+| Salida | Cómo |
+| --- | --- |
+| **WhatsApp** | enlace `wa.me` con el mensaje precargado y la URL de `/v/[codigo]` |
+| **Imagen** | PNG vertical 800×1200 que dibuja el servidor |
+| **PDF** | documento A5 apaisado, exige sesión |
+
+La imagen y la vista previa del enlace salen del mismo sitio,
+`/api/vales/[codigo]/tarjeta`, en dos formatos: `?formato=tarjeta` (vertical,
+para compartir) y el apaisado 1200×630 por omisión, que es el que lee
+WhatsApp para la vista previa.
+
+**Se dibujan en el servidor a propósito.** Capturar la tarjeta del DOM con
+`html-to-image` parecía más simple, pero esa técnica clona el nodo dentro de
+un `<foreignObject>` de SVG donde no llegan ni las fuentes de `next/font` ni
+las variables de color de Tailwind: la imagen salía sin texto y sin fondo.
+Dibujarla en el servidor da el mismo resultado en cualquier navegador.
+
+---
+
 ## Estructura
 
 ```

@@ -1,19 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import QRCode from "react-qr-code";
 import { Check, Download, FileText, MessageCircle } from "lucide-react";
 
 import {
-  descargarNodoComoPng,
-  compartirNodoComoPng,
-} from "@/lib/image-cliente";
-import {
   enlaceWhatsApp,
   mensajeVale,
   urlPdfVale,
   urlPublicaVale,
+  urlTarjetaVale,
 } from "@/lib/compartir";
 import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 import { ETIQUETA_TIPO } from "@/lib/supabase/types";
@@ -30,11 +27,11 @@ export type DatosTarjeta = {
 };
 
 /**
- * Tarjeta del vale y sus tres salidas.
+ * Tarjeta del vale y sus tres salidas: WhatsApp, imagen y PDF.
  *
- * La tarjeta se captura tal cual se ve (`html-to-image`) para bajarla como
- * PNG, así que lo que el cliente recibe es exactamente lo que la vendedora
- * tiene en pantalla.
+ * Lo que se ve aquí es la vista en pantalla. La imagen que se descarga o se
+ * comparte la dibuja el servidor en `/api/vales/[codigo]/tarjeta`, con el
+ * mismo diseño pero a 800×1200 y sin depender del navegador.
  */
 export function TarjetaVale({
   vale,
@@ -44,7 +41,6 @@ export function TarjetaVale({
   /** Sin botones: para la página pública, que solo muestra. */
   compacta?: boolean;
 }) {
-  const tarjeta = useRef<HTMLDivElement>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
@@ -59,17 +55,38 @@ export function TarjetaVale({
   const vigente = vale.estado === "activo";
 
   /**
-   * En móvil abre la hoja nativa de compartir, que es lo que permite mandar
-   * la imagen directo a WhatsApp. En escritorio no existe, así que baja el
-   * archivo.
+   * La imagen la dibuja el servidor y aquí solo se descarga o se pasa a la
+   * hoja nativa de compartir, que en móvil permite mandarla directa a
+   * WhatsApp. Antes se capturaba esta misma tarjeta del DOM, pero salía sin
+   * texto ni fondo: la técnica clona el nodo dentro de un SVG donde no llegan
+   * las fuentes ni las variables de color.
    */
   async function compartirImagen() {
-    if (!tarjeta.current) return;
-    const nombre = `vale-${vale.codigo}`;
+    const nombre = `vale-${vale.codigo}.png`;
     setOcupado("imagen");
+
     try {
-      const compartido = await compartirNodoComoPng(tarjeta.current, nombre);
-      if (!compartido) await descargarNodoComoPng(tarjeta.current, nombre);
+      const respuesta = await fetch(urlTarjetaVale(vale.codigo));
+      if (!respuesta.ok) throw new Error("No se pudo generar la imagen.");
+      const blob = await respuesta.blob();
+      const archivo = new File([blob], nombre, { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: `Vale ${vale.codigo}` });
+        return;
+      }
+
+      // Escritorio: sin hoja de compartir, se baja el archivo.
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = nombre;
+      enlace.click();
+      URL.revokeObjectURL(enlace.href);
+    } catch (e) {
+      // Cancelar la hoja de compartir lanza AbortError: no es un fallo.
+      if ((e as Error)?.name !== "AbortError") {
+        window.open(urlTarjetaVale(vale.codigo, true), "_blank");
+      }
     } finally {
       setOcupado(null);
     }
@@ -85,7 +102,6 @@ export function TarjetaVale({
     <div className="flex flex-col gap-4">
       {/* La tarjeta que ve el cliente */}
       <div
-        ref={tarjeta}
         className="bg-ink text-bone rounded-panel relative overflow-hidden"
         style={{ backgroundColor: "#0B0B0C" }}
       >
