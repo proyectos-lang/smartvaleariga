@@ -114,7 +114,7 @@ async function limpiar() {
   if (!creado.usuarioId) return;
 
   const vales = await rest(
-    `vales?select=id&usuario_id=eq.${creado.usuarioId}`,
+    `vales?select=id&or=(usuario_id.eq.${creado.usuarioId},tienda_id.eq.${creado.tiendaId})`,
   ).catch(() => []);
 
   if (vales.length) {
@@ -160,9 +160,14 @@ async function probarEmision() {
     p_segmento: "A1-VIP",
   });
   comprobar(
-    "el código A1 tiene el formato AR-A1-000000",
-    /^AR-A1-\d{6}$/.test(a1.codigo),
+    "el código A1 lleva el prefijo de la vendedora",
+    /^AR-A1-V\d{3,}-\d{5}$/.test(a1.codigo),
     a1.codigo,
+  );
+  comprobar(
+    "A1 no consume el bloque",
+    a1.rango_id === null,
+    `rango_id: ${a1.rango_id}`,
   );
   comprobar(
     "el descuento A1-VIP se congela desde configuración (30%)",
@@ -185,9 +190,9 @@ async function probarEmision() {
   });
   comprobar("A2 guarda el origen", a2.origen === "Centro comercial Valle");
   comprobar(
-    "el correlativo avanza de uno en uno entre tipos distintos",
-    a2.correlativo === a1.correlativo + 1,
-    `${a1.correlativo} → ${a2.correlativo}`,
+    "A2 sí sale del bloque asignado",
+    a2.rango_id === rango.id && a2.correlativo === rango.rango_inicio,
+    `correlativo ${a2.correlativo} del bloque ${rango.rango_inicio}–${rango.rango_fin}`,
   );
 
   const a3 = await rpc("fn_emitir_vale", {
@@ -289,11 +294,108 @@ async function probarRedencion(vale) {
   );
 }
 
+async function probarA1SinLimite() {
+  console.log("\nA1 sin límite");
+
+  // El bloque es de 5 y ya se consumió parte con A2 y A3. Emitir más A1 que
+  // el bloque entero demuestra que su secuencia es independiente.
+  const codigos = [];
+  for (let i = 0; i < 8; i++) {
+    const v = await rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A1",
+      p_nombre: `Ilimitado ${i} ${MARCA}`,
+      p_telefono: `5218112345${String(i).padStart(3, "0")}`,
+      p_segmento: "A1-30",
+    });
+    codigos.push(v.codigo);
+  }
+
+  comprobar(
+    "se emiten 8 vales A1 pese a un bloque de solo 5",
+    codigos.length === 8,
+  );
+  comprobar(
+    "ningún código A1 se repite",
+    new Set(codigos).size === codigos.length,
+  );
+
+  const correlativos = codigos.map((c) => Number(c.slice(-5)));
+  comprobar(
+    "la secuencia A1 avanza sin huecos",
+    correlativos.every((n, i) => i === 0 || n === correlativos[i - 1] + 1),
+    codigos.at(0) + " … " + codigos.at(-1),
+  );
+
+  const cupo = await rpc("fn_resumen_rango", { p_usuario_id: creado.usuarioId });
+  comprobar(
+    "el bloque no se movió con los A1",
+    cupo[0].emitidos === 2,
+    `${cupo[0].emitidos} consumidos del bloque`,
+  );
+}
+
+async function probarAutorregistro() {
+  console.log("\nAutorregistro desde el QR de la tienda");
+
+  const [tienda] = await rest(`tiendas?select=token,id&id=eq.${creado.tiendaId}`);
+
+  const primero = await rpc("fn_autorregistro_a3", {
+    p_token: tienda.token,
+    p_nombre: `Visitante ${MARCA}`,
+    p_telefono: "5218112399001",
+    p_correo: null,
+  });
+  comprobar(
+    "el código lleva el prefijo de la tienda",
+    /^AR-A3-T\d{3,}-\d{5}$/.test(primero.codigo),
+    primero.codigo,
+  );
+  comprobar("el vale no tiene vendedora", primero.usuario_id === null);
+  comprobar("queda marcado como autorregistro", primero.autorregistro === true);
+  comprobar("se emite sin correo", true);
+
+  const repetido = await rpc("fn_autorregistro_a3", {
+    p_token: tienda.token,
+    p_nombre: `Visitante ${MARCA}`,
+    p_telefono: "5218112399001",
+  });
+  comprobar(
+    "volver a escanear devuelve el mismo vale, no uno nuevo",
+    repetido.id === primero.id,
+    `${primero.codigo} vs ${repetido.codigo}`,
+  );
+
+  const otro = await rpc("fn_autorregistro_a3", {
+    p_token: tienda.token,
+    p_nombre: `Otro visitante ${MARCA}`,
+    p_telefono: "5218112399002",
+  });
+  comprobar(
+    "otra persona sí obtiene su propio vale",
+    otro.id !== primero.id,
+    otro.codigo,
+  );
+
+  await debeFallar(
+    "un token de tienda inventado se rechaza",
+    rpc("fn_autorregistro_a3", {
+      p_token: "token-que-no-existe-000",
+      p_nombre: `X ${MARCA}`,
+      p_telefono: "5218112399003",
+    }),
+    "SV007",
+  );
+}
+
 async function probarAgotamiento() {
   console.log("\nAgotamiento del rango");
 
-  // Quedan 2 de los 5 del bloque: se consumen y el sexto debe fallar.
-  for (let i = 0; i < 2; i++) {
+  // Se llena lo que quede del bloque con A3, que sí lo consume.
+  const [cupo] = await rpc("fn_resumen_rango", {
+    p_usuario_id: creado.usuarioId,
+  });
+  for (let i = 0; i < cupo.restantes; i++) {
     await rpc("fn_emitir_vale", {
       p_usuario_id: creado.usuarioId,
       p_tipo: "A3",
@@ -320,16 +422,25 @@ async function probarAgotamiento() {
     );
   }
 
-  const cupo = await rpc("fn_resumen_rango", {
+  const [despues] = await rpc("fn_resumen_rango", {
     p_usuario_id: creado.usuarioId,
-  }).catch(() => null);
+  });
+  comprobar("fn_resumen_rango reporta el bloque agotado", despues.agotado === true);
+  comprobar("no quedan vales disponibles", despues.restantes === 0);
 
-  if (cupo) {
-    comprobar("fn_resumen_rango reporta el bloque agotado", cupo[0]?.agotado === true);
-    comprobar("no quedan vales disponibles", cupo[0]?.restantes === 0);
-  } else {
-    console.log("  [--] fn_resumen_rango no existe todavía; omitida");
-  }
+  // Lo importante del cambio: agotado el bloque, A1 sigue funcionando.
+  const a1 = await rpc("fn_emitir_vale", {
+    p_usuario_id: creado.usuarioId,
+    p_tipo: "A1",
+    p_nombre: `Tras agotarse ${MARCA}`,
+    p_telefono: "5218112343500",
+    p_segmento: "A1-90",
+  });
+  comprobar(
+    "con el bloque agotado, A1 se sigue emitiendo",
+    /^AR-A1-V\d{3,}-\d{5}$/.test(a1.codigo),
+    a1.codigo,
+  );
 }
 
 async function probarConcurrencia() {
@@ -342,6 +453,8 @@ async function probarConcurrencia() {
     p_tamano: N,
   });
 
+  // Se prueba con A3 porque es el tipo que toma el número del bloque, que es
+  // donde una carrera produciría correlativos repetidos.
   const resultados = await Promise.allSettled(
     Array.from({ length: N }, (_, i) =>
       rpc("fn_emitir_vale", {
@@ -383,6 +496,8 @@ try {
   await preparar();
   const { a1 } = await probarEmision();
   await probarRedencion(a1);
+  await probarA1SinLimite();
+  await probarAutorregistro();
   await probarAgotamiento();
   await probarConcurrencia();
 } catch (e) {
