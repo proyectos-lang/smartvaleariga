@@ -3,17 +3,20 @@ import type { Metadata } from "next";
 import { Tarjeta, TarjetaIndicador } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
 import { Barras } from "@/components/reportes/barras";
+import { DesempenoVendedoras } from "@/components/reportes/desempeno-vendedoras";
 import { Medidor } from "@/components/reportes/medidor";
 import { SerieTiempo } from "@/components/reportes/serie-tiempo";
 import { PuntoTipo } from "@/components/vales/chip-tipo";
 import { requerirAdmin } from "@/lib/auth/guardas";
 import {
   actividadDiaria,
+  desempenoVendedoras,
   metricasGenerales,
   metricasPorTipo,
   rankingTiendas,
-  rankingVendedoras,
   viralidadA2,
+  ORDENES_DESEMPENO,
+  type OrdenDesempeno,
 } from "@/lib/datos/metricas";
 import { moneda, monedaCompacta } from "@/lib/format";
 import { ETIQUETA_TIPO, type TipoVale } from "@/lib/supabase/types";
@@ -26,14 +29,22 @@ const COLOR_TIPO: Record<TipoVale, string> = {
   A3: "var(--color-serie-a3)",
 };
 
-export default async function PaginaReportes() {
+export default async function PaginaReportes({
+  searchParams,
+}: PageProps<"/panel/reportes">) {
   await requerirAdmin();
 
-  const [general, porTipo, vendedoras, tiendas, viral, actividad] =
+  const params = await searchParams;
+  const orden: OrdenDesempeno =
+    typeof params.orden === "string" && params.orden in ORDENES_DESEMPENO
+      ? (params.orden as OrdenDesempeno)
+      : "ingreso";
+
+  const [general, porTipo, desempeno, tiendas, viral, actividad] =
     await Promise.all([
       metricasGenerales(),
       metricasPorTipo(),
-      rankingVendedoras(8),
+      desempenoVendedoras(orden),
       rankingTiendas(8),
       viralidadA2(),
       actividadDiaria(30),
@@ -274,36 +285,35 @@ export default async function PaginaReportes() {
         </Tarjeta>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2">
-        <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
+      <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
             <h3 className="font-display m-0 text-lg leading-none font-normal">
-              Ranking de vendedoras
+              Desempeño por vendedora
             </h3>
             <p className="text-ink/45 m-0 text-[12px]">
-              Venta generada por los vales que emitió cada una.
+              Qué emite cada una, cuánto convierte, qué venta genera y cuánto
+              cupo le queda.
             </p>
           </div>
+          <span className="text-ink/40 text-[11.5px]">
+            Ordenado por {ORDENES_DESEMPENO[orden].etiqueta.toLowerCase()}
+          </span>
+        </div>
 
-          {vendedoras.length === 0 ? (
-            <p className="text-ink/45 m-0 py-6 text-center text-[12.5px]">
-              Sin datos todavía.
-            </p>
-          ) : (
-            <Barras
-              datos={vendedoras.map((v) => ({
-                etiqueta: v.emisora,
-                detalle: `${v.vales_emitidos} vales · ${Math.round(Number(v.tasa_conversion ?? 0))}% conv.`,
-                valor: Number(v.ingreso_generado),
-                valorTexto:
-                  Number(v.ingreso_generado) > 0
-                    ? monedaCompacta(Number(v.ingreso_generado))
-                    : "—",
-              }))}
-            />
-          )}
-        </Tarjeta>
+        {desempeno === null ? (
+          <p className="border-gold/30 bg-gold/8 text-gold-deep rounded-field m-0 border px-4 py-3 text-[12.5px] leading-relaxed">
+            Falta aplicar la migración{" "}
+            <code className="font-mono">20260814160000_desempeno_vendedoras.sql</code>{" "}
+            en el SQL Editor de Supabase. El resto del tablero funciona sin
+            ella.
+          </p>
+        ) : (
+          <DesempenoVendedoras filas={desempeno} orden={orden} />
+        )}
+      </Tarjeta>
 
+      <section className="grid gap-5 lg:grid-cols-2">
         <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
           <div className="flex flex-col gap-1">
             <h3 className="font-display m-0 text-lg leading-none font-normal">

@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "@/lib/supabase/server";
 import type {
   ActividadDiaria,
+  DesempenoVendedora,
   MetricasGenerales,
   MetricasPorTipo,
   RankingTienda,
@@ -67,6 +68,45 @@ export async function rankingVendedoras(
     .limit(limite);
 
   if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+/** Criterios por los que se puede ordenar la tabla de desempeño. */
+export const ORDENES_DESEMPENO = {
+  ingreso: { columna: "ingreso_generado", etiqueta: "Venta generada" },
+  vales: { columna: "vales_emitidos", etiqueta: "Vales emitidos" },
+  redenciones: { columna: "redenciones", etiqueta: "Compras" },
+  conversion: { columna: "tasa_conversion", etiqueta: "Conversión" },
+  cupo: { columna: "correlativos_restantes", etiqueta: "Cupo restante" },
+} as const;
+
+export type OrdenDesempeno = keyof typeof ORDENES_DESEMPENO;
+
+/**
+ * Desempeño completo por vendedora.
+ *
+ * Devuelve también a quien no ha emitido nada: una cuenta con cupo asignado
+ * y cero vales es precisamente lo que hay que detectar.
+ */
+export async function desempenoVendedoras(
+  orden: OrdenDesempeno = "ingreso",
+): Promise<DesempenoVendedora[] | null> {
+  const { columna } = ORDENES_DESEMPENO[orden] ?? ORDENES_DESEMPENO.ingreso;
+
+  const { data, error } = await db()
+    .from("vw_desempeno_vendedoras")
+    .select("*")
+    // `nullsFirst: false` deja abajo a quien todavía no tiene cifras.
+    .order(columna, { ascending: false, nullsFirst: false })
+    .order("vendedora");
+
+  if (error) {
+    // PGRST205 = la vista no existe todavía. Como las migraciones se aplican
+    // a mano, es un estado real: mejor una sección vacía con su aviso que
+    // tumbar el tablero entero.
+    if (error.code === "PGRST205") return null;
+    throw new Error(`No se pudo leer el desempeño: ${error.message}`);
+  }
   return data ?? [];
 }
 

@@ -293,6 +293,46 @@ export type Database = {
         Relationships: [];
       };
 
+      vw_desempeno_vendedoras: {
+        Row: {
+          usuario_id: number;
+          vendedora: string;
+          correo: string;
+          rol: RolUsuario;
+          activo: boolean;
+          tienda: string | null;
+          ultimo_acceso: string | null;
+
+          vales_emitidos: number;
+          vales_a1: number;
+          vales_a2: number;
+          vales_a3: number;
+          vales_vigentes: number;
+          vales_vencidos: number;
+          vales_anulados: number;
+
+          vales_con_compra: number;
+          redenciones: number;
+          tasa_conversion: number | null;
+          redenciones_por_vale: number | null;
+
+          ingreso_generado: number;
+          ticket_promedio: number | null;
+          descuento_otorgado: number;
+          descuento_sobre_venta: number | null;
+          venta_por_vale: number | null;
+
+          bloques: number;
+          correlativos_asignados: number;
+          correlativos_usados: number;
+          correlativos_restantes: number;
+
+          ultima_emision: string | null;
+          ultima_venta: string | null;
+        };
+        Relationships: [];
+      };
+
       vw_ranking_tiendas: {
         Row: {
           tienda_id: number;
@@ -476,6 +516,7 @@ export type ValeDetalle = Vista<"vw_vales_detalle">;
 export type MetricasGenerales = Vista<"vw_metricas_generales">;
 export type MetricasPorTipo = Vista<"vw_vales_por_tipo">;
 export type RankingVendedora = Vista<"vw_ranking_vendedoras">;
+export type DesempenoVendedora = Vista<"vw_desempeno_vendedoras">;
 export type RankingTienda = Vista<"vw_ranking_tiendas">;
 export type ViralidadA2 = Vista<"vw_viralidad_a2">;
 export type ActividadDiaria = Vista<"vw_actividad_diaria">;
