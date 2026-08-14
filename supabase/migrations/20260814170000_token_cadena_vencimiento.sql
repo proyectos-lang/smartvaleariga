@@ -65,12 +65,15 @@ on conflict (clave) do nothing;
 
 
 -- ═══ Vista de detalle, con el token y la difusión ════════════════════════
+--
+-- Las tres columnas nuevas van al FINAL, no intercaladas. `create or replace
+-- view` solo sabe añadir al final: mover o renombrar una existente obliga a
+-- borrar la vista y con ella las cinco que dependen de esta.
 
 create or replace view smartvale.vw_vales_detalle as
 select
   v.id,
   v.codigo,
-  v.token,
   v.tipo,
   v.correlativo,
   v.segmento,
@@ -86,10 +89,6 @@ select
     when now() > v.fecha_vencimiento then 'vencido'
     else 'activo'
   end as estado,
-  -- Días que faltan para vencer. Negativo si ya venció.
-  extract(
-    day from (date_trunc('day', v.fecha_vencimiento) - date_trunc('day', now()))
-  )::integer as dias_restantes,
   v.usuario_id,
   u.nombre  as emisora,
   v.contacto_id,
@@ -99,10 +98,17 @@ select
   v.tienda_id,
   t.nombre as tienda,
   coalesce(r.total, 0)     as total_redenciones,
-  coalesce(r.difundidas, 0) as redenciones_difundidas,
   coalesce(r.monto, 0)     as ingreso_generado,
   coalesce(r.descuento, 0) as descuento_otorgado,
-  r.ultima                 as ultima_redencion
+  r.ultima                 as ultima_redencion,
+
+  -- ── Columnas nuevas, siempre al final ──
+  v.token,
+  -- Días que faltan para vencer. Negativo si ya venció.
+  extract(
+    day from (date_trunc('day', v.fecha_vencimiento) - date_trunc('day', now()))
+  )::integer                as dias_restantes,
+  coalesce(r.difundidas, 0) as redenciones_difundidas
 from smartvale.vales v
 join smartvale.contactos c on c.id = v.contacto_id
 join smartvale.usuarios  u on u.id = v.usuario_id
@@ -287,21 +293,24 @@ $$;
 
 -- ═══ Viralidad A2: cuánto salió del círculo del portador ═════════════════
 
+-- Mismo motivo que arriba: lo nuevo va al final para no reordenar columnas.
 create or replace view smartvale.vw_viralidad_a2 as
 select
   count(*)::integer                                      as vales_a2,
   coalesce(sum(total_redenciones), 0)::integer           as redenciones_a2,
-  coalesce(sum(redenciones_difundidas), 0)::integer      as redenciones_difundidas,
-  round(
-    100.0 * coalesce(sum(redenciones_difundidas), 0)
-          / nullif(sum(total_redenciones), 0)
-  , 2)                                                   as porcentaje_difusion,
   round(
     coalesce(sum(total_redenciones), 0)::numeric / nullif(count(*), 0)
   , 2)                                                   as redenciones_por_vale,
   max(total_redenciones)                                 as alcance_maximo,
   count(*) filter (where total_redenciones > 1)::integer as vales_compartidos,
-  coalesce(sum(ingreso_generado), 0)                     as ingreso_a2
+  coalesce(sum(ingreso_generado), 0)                     as ingreso_a2,
+
+  -- ── Columnas nuevas ──
+  coalesce(sum(redenciones_difundidas), 0)::integer      as redenciones_difundidas,
+  round(
+    100.0 * coalesce(sum(redenciones_difundidas), 0)
+          / nullif(sum(total_redenciones), 0)
+  , 2)                                                   as porcentaje_difusion
 from smartvale.vw_vales_detalle
 where tipo = 'A2';
 
