@@ -92,6 +92,19 @@ export async function verificarContrasena(
 }
 
 /**
+ * Contraseña generada para una cuenta nueva o un restablecimiento.
+ *
+ * El alfabeto excluye los caracteres que se confunden al dictarlos por
+ * teléfono (O/0, I/l/1): estas claves se comunican de viva voz.
+ */
+const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+export function generarContrasena(largo = 12) {
+  const bytes = randomBytes(largo);
+  return Array.from(bytes, (b) => ALFABETO[b % ALFABETO.length]).join("");
+}
+
+/**
  * Reglas mínimas de contraseña. Se validan al crear o cambiar la clave,
  * nunca al iniciar sesión: ahí solo importa si coincide.
  */
