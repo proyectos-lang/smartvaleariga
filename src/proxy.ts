@@ -20,10 +20,19 @@ const RUTAS_PUBLICAS = ["/login"];
 /** Cara pública del vale: es lo que abre quien recibe el WhatsApp. */
 const PREFIJOS_PUBLICOS = ["/v/", "/api/qr"];
 
+/**
+ * La imagen de la tarjeta tiene que ser alcanzable sin sesión: quien la pide
+ * es el servidor de WhatsApp al generar la vista previa del enlace, y ahí no
+ * hay cookies. El PDF del mismo vale, en cambio, sigue protegido: es material
+ * interno. Por eso es un patrón exacto y no un prefijo sobre /api/vales.
+ */
+const PATRONES_PUBLICOS = [/^\/api\/vales\/[^/]+\/tarjeta$/];
+
 function esPublica(pathname: string) {
   return (
     RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ||
-    PREFIJOS_PUBLICOS.some((r) => pathname.startsWith(r))
+    PREFIJOS_PUBLICOS.some((r) => pathname.startsWith(r)) ||
+    PATRONES_PUBLICOS.some((r) => r.test(pathname))
   );
 }
 

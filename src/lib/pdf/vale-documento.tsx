@@ -8,15 +8,11 @@ import {
 } from "@react-pdf/renderer";
 
 /**
- * Plantilla base del vale en PDF.
+ * Vale de descuento en PDF, para imprimir o adjuntar por correo.
  *
- * Los campos son deliberadamente genéricos: cuando definamos el modelo real
- * del vale, esta plantilla se ajusta sin tocar el resto del pipeline.
- *
- * Tipografía: por ahora usa las fuentes estándar del PDF (Helvetica /
- * Times-Roman) para no depender de la red al renderizar. Para usar Geist y
- * Cormorant Garamond, deja los .ttf en `public/fonts/` y regístralos con
- * `Font.register({ family: "Cormorant", src: "…/Cormorant.ttf" })`.
+ * Tipografía: fuentes estándar del PDF (Helvetica / Times-Roman) para no
+ * depender de la red al renderizar. Para usar Geist y Cormorant Garamond,
+ * dejar los .ttf en `public/fonts/` y registrarlos con `Font.register`.
  */
 
 const C = {
@@ -36,74 +32,72 @@ const s = StyleSheet.create({
     color: C.ink,
     fontFamily: "Helvetica",
     fontSize: 10,
-    padding: 36,
+    padding: 34,
   },
   encabezado: {
     backgroundColor: C.ink,
-    color: C.bone,
-    padding: 28,
+    padding: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  marca: { flexDirection: "column", gap: 6 },
   marcaNombre: {
     fontFamily: "Helvetica-Bold",
     fontSize: 15,
     letterSpacing: 6,
     color: C.goldLight,
   },
-  marcaRubro: { fontSize: 7, letterSpacing: 4, color: "#8E8A82" },
-  encabezadoEtiqueta: {
+  marcaRubro: { fontSize: 7, letterSpacing: 4, color: "#8E8A82", marginTop: 5 },
+  etiquetaCabecera: {
     fontSize: 7,
     letterSpacing: 3,
     color: C.gold,
     textAlign: "right",
   },
-  folio: {
+  codigo: {
     fontFamily: "Courier-Bold",
-    fontSize: 16,
+    fontSize: 17,
     color: C.bone,
     textAlign: "right",
     marginTop: 6,
   },
+  reglaOro: { height: 2, backgroundColor: C.gold },
   cuerpo: {
     backgroundColor: C.paper,
     borderWidth: 1,
     borderColor: C.linea,
     borderTopWidth: 0,
-    padding: 28,
+    padding: 24,
     flexDirection: "row",
-    gap: 28,
+    gap: 24,
   },
-  columna: { flex: 1, flexDirection: "column", gap: 18 },
+  columna: { flex: 1, flexDirection: "column", gap: 15 },
   etiqueta: { fontSize: 7, letterSpacing: 2.2, color: C.tenue },
-  valor: { fontSize: 12, color: C.ink, marginTop: 5 },
-  monto: {
-    fontFamily: "Times-Roman",
-    fontSize: 34,
+  valor: { fontSize: 11, color: C.ink, marginTop: 4 },
+  descuento: {
+    fontFamily: "Times-Bold",
+    fontSize: 40,
     color: C.ink,
-    marginTop: 4,
+    marginTop: 2,
   },
   qrCaja: {
-    width: 152,
+    width: 146,
     alignItems: "center",
     borderLeftWidth: 1,
     borderLeftColor: C.linea,
-    paddingLeft: 24,
+    paddingLeft: 22,
   },
-  qr: { width: 128, height: 128 },
+  qr: { width: 124, height: 124 },
   qrPie: {
     fontSize: 7,
     color: C.tenue,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 9,
     lineHeight: 1.5,
   },
-  reglaOro: { height: 2, backgroundColor: C.gold },
   condiciones: {
-    marginTop: 22,
-    paddingTop: 14,
+    marginTop: 18,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: C.linea,
   },
@@ -111,14 +105,14 @@ const s = StyleSheet.create({
     fontSize: 7,
     letterSpacing: 2.2,
     color: C.goldDark,
-    marginBottom: 7,
+    marginBottom: 6,
   },
   condicion: { fontSize: 8, color: C.tenue, lineHeight: 1.6 },
   pie: {
     position: "absolute",
-    left: 36,
-    right: 36,
-    bottom: 26,
+    left: 34,
+    right: 34,
+    bottom: 22,
     flexDirection: "row",
     justifyContent: "space-between",
     fontSize: 7,
@@ -127,26 +121,28 @@ const s = StyleSheet.create({
 });
 
 export type DatosVale = {
-  folio: string;
-  cliente: string;
-  concepto: string;
-  /** Ya formateado, p. ej. "$12,400.00". */
-  monto: string;
-  /** Ya formateada, p. ej. "12 sep 2026". */
+  codigo: string;
+  tipo: string;
+  /** Etiqueta legible del tipo, p. ej. "Empleados y referidos". */
+  tipoEtiqueta: string;
+  descuento: number;
+  portador: string;
+  /** Ya formateadas. */
+  emision: string;
   vigencia: string;
-  emitidoPor?: string;
-  sucursal?: string;
+  estado: string;
+  emisora?: string;
+  tienda?: string | null;
   /** PNG del QR como data URL. Ver `qrDataUrl()` en `src/lib/qr.ts`. */
   qrDataUrl?: string;
-  /** URL legible bajo el QR. */
-  urlCanje?: string;
+  urlPublica?: string;
   condiciones?: string[];
 };
 
 const CONDICIONES_BASE = [
-  "Documento válido únicamente presentando este código en cualquier sucursal ARIGA.",
-  "No es canjeable por efectivo ni transferible a terceros.",
-  "Vigencia improrrogable; después de la fecha indicada el vale se cancela.",
+  "Válido presentando este código en cualquier sucursal ARIGA dentro de su vigencia.",
+  "El descuento se aplica sobre el total de la compra y no es canjeable por efectivo.",
+  "Puede usarse en varias compras y por distintas personas mientras siga vigente.",
 ];
 
 export function ValeDocumento(vale: DatosVale) {
@@ -154,19 +150,19 @@ export function ValeDocumento(vale: DatosVale) {
 
   return (
     <Document
-      title={`Vale ${vale.folio} · ARIGA Joyería`}
+      title={`Vale ${vale.codigo} · ARIGA Joyería`}
       author="ARIGA Joyería"
-      subject={vale.concepto}
+      subject={`${vale.descuento}% de descuento · ${vale.tipoEtiqueta}`}
     >
       <Page size="A5" orientation="landscape" style={s.page}>
         <View style={s.encabezado}>
-          <View style={s.marca}>
+          <View>
             <Text style={s.marcaNombre}>ARIGA</Text>
             <Text style={s.marcaRubro}>JOYERIA</Text>
           </View>
           <View>
-            <Text style={s.encabezadoEtiqueta}>VALE DIGITAL</Text>
-            <Text style={s.folio}>{vale.folio}</Text>
+            <Text style={s.etiquetaCabecera}>VALE DE DESCUENTO</Text>
+            <Text style={s.codigo}>{vale.codigo}</Text>
           </View>
         </View>
         <View style={s.reglaOro} />
@@ -174,16 +170,18 @@ export function ValeDocumento(vale: DatosVale) {
         <View style={s.cuerpo}>
           <View style={s.columna}>
             <View>
-              <Text style={s.etiqueta}>CLIENTE</Text>
-              <Text style={s.valor}>{vale.cliente}</Text>
+              <Text style={s.etiqueta}>DESCUENTO</Text>
+              <Text style={s.descuento}>{vale.descuento}%</Text>
             </View>
             <View>
-              <Text style={s.etiqueta}>PIEZA / CONCEPTO</Text>
-              <Text style={s.valor}>{vale.concepto}</Text>
+              <Text style={s.etiqueta}>PORTADOR</Text>
+              <Text style={s.valor}>{vale.portador}</Text>
             </View>
             <View>
-              <Text style={s.etiqueta}>MONTO</Text>
-              <Text style={s.monto}>{vale.monto}</Text>
+              <Text style={s.etiqueta}>TIPO</Text>
+              <Text style={s.valor}>
+                {vale.tipo} · {vale.tipoEtiqueta}
+              </Text>
             </View>
             <View>
               <Text style={s.etiqueta}>VIGENTE HASTA</Text>
@@ -199,8 +197,8 @@ export function ValeDocumento(vale: DatosVale) {
               <View style={[s.qr, { backgroundColor: C.linea }]} />
             )}
             <Text style={s.qrPie}>
-              Escanea para validar y canjear
-              {vale.urlCanje ? `\n${vale.urlCanje}` : ""}
+              Escanea para presentarlo en tienda
+              {vale.urlPublica ? `\n${vale.urlPublica}` : ""}
             </Text>
           </View>
         </View>
@@ -216,10 +214,10 @@ export function ValeDocumento(vale: DatosVale) {
 
         <View style={s.pie}>
           <Text>
-            {[vale.emitidoPor, vale.sucursal].filter(Boolean).join(" · ") ||
+            {[vale.emisora, vale.tienda].filter(Boolean).join(" · ") ||
               "ARIGA Joyería"}
           </Text>
-          <Text>ariga.mx</Text>
+          <Text>Emitido el {vale.emision}</Text>
         </View>
       </Page>
     </Document>
