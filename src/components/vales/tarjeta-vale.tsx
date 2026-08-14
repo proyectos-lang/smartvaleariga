@@ -17,6 +17,8 @@ import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 export type DatosTarjeta = {
   codigo: string;
+  /** Identificador del enlace público; el QR lo lleva a él. */
+  token: string;
   tipo: TipoVale;
   estado: EstadoVale;
   descuento: number;
@@ -30,8 +32,8 @@ export type DatosTarjeta = {
  * Tarjeta del vale y sus tres salidas: WhatsApp, imagen y PDF.
  *
  * Lo que se ve aquí es la vista en pantalla. La imagen que se descarga o se
- * comparte la dibuja el servidor en `/api/vales/[codigo]/tarjeta`, con el
- * mismo diseño pero a 800×1200 y sin depender del navegador.
+ * comparte la dibuja el servidor en `/api/v/[token]/imagen`, con el mismo
+ * diseño pero a 800×1200 y sin depender del navegador.
  */
 export function TarjetaVale({
   vale,
@@ -44,10 +46,11 @@ export function TarjetaVale({
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
-  const url = urlPublicaVale(vale.codigo);
+  const url = urlPublicaVale(vale.token);
   const mensaje = mensajeVale({
     nombre: vale.portador,
     codigo: vale.codigo,
+    token: vale.token,
     descuento: vale.descuento,
     vigencia: vale.vigencia,
   });
@@ -66,7 +69,7 @@ export function TarjetaVale({
     setOcupado("imagen");
 
     try {
-      const respuesta = await fetch(urlTarjetaVale(vale.codigo));
+      const respuesta = await fetch(urlTarjetaVale(vale.token));
       if (!respuesta.ok) throw new Error("No se pudo generar la imagen.");
       const blob = await respuesta.blob();
       const archivo = new File([blob], nombre, { type: "image/png" });
@@ -85,7 +88,7 @@ export function TarjetaVale({
     } catch (e) {
       // Cancelar la hoja de compartir lanza AbortError: no es un fallo.
       if ((e as Error)?.name !== "AbortError") {
-        window.open(urlTarjetaVale(vale.codigo, true), "_blank");
+        window.open(urlTarjetaVale(vale.token, true), "_blank");
       }
     } finally {
       setOcupado(null);

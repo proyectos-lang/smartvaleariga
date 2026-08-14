@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { valePorCodigo } from "@/lib/datos/vales";
+import { valePorToken } from "@/lib/datos/vales";
 import { qrDataUrl } from "@/lib/qr";
 import { urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
@@ -36,10 +36,10 @@ const TENUE = "#8E8A82";
 
 export async function GET(
   request: NextRequest,
-  { params }: RouteContext<"/api/vales/[codigo]/tarjeta">,
+  { params }: RouteContext<"/api/v/[token]/imagen">,
 ) {
-  const { codigo } = await params;
-  const vale = await valePorCodigo(decodeURIComponent(codigo));
+  const { token } = await params;
+  const vale = await valePorToken(decodeURIComponent(token));
 
   if (!vale) {
     return NextResponse.json({ error: "Vale no encontrado." }, { status: 404 });
@@ -48,7 +48,7 @@ export async function GET(
   const vertical = request.nextUrl.searchParams.get("formato") === "tarjeta";
   const descargar = request.nextUrl.searchParams.get("descargar") === "1";
 
-  const enlace = urlPublicaVale(vale.codigo);
+  const enlace = urlPublicaVale(vale.token);
   const qr = await qrDataUrl(enlace, { tamano: vertical ? 620 : 320, margen: 1 });
   const descuento = Number(vale.descuento_pct);
 

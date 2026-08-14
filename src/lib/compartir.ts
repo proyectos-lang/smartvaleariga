@@ -40,18 +40,21 @@ export function baseSitio() {
 }
 
 /**
- * Cara pública del vale. Es lo que se codifica en el QR y lo que se manda
- * por WhatsApp: un enlace, no el código suelto, para que cualquier cámara
- * lo abra y para que el receptor vea la tarjeta completa.
+ * Cara pública del vale: lo que se codifica en el QR y se manda por WhatsApp.
+ *
+ * Va con el **token**, no con el código. El correlativo es consecutivo por
+ * diseño, así que un enlace `/v/AR-A1-000045` se puede recorrer a mano y
+ * cosechar descuentos válidos sin que nadie los haya entregado. El código se
+ * queda para dictarlo en caja; esto para compartirlo.
  */
-export function urlPublicaVale(codigo: string, base = baseSitio()) {
-  return new URL(`/v/${encodeURIComponent(codigo)}`, base).toString();
+export function urlPublicaVale(token: string, base = baseSitio()) {
+  return new URL(`/v/${encodeURIComponent(token)}`, base).toString();
 }
 
 /** Imagen apaisada 1200×630 para la vista previa del enlace. */
-export function urlImagenVale(codigo: string, base = baseSitio()) {
+export function urlImagenVale(token: string, base = baseSitio()) {
   return new URL(
-    `/api/vales/${encodeURIComponent(codigo)}/tarjeta`,
+    `/api/v/${encodeURIComponent(token)}/imagen`,
     base,
   ).toString();
 }
@@ -60,9 +63,9 @@ export function urlImagenVale(codigo: string, base = baseSitio()) {
  * Imagen vertical 800×1200: la que la vendedora descarga o comparte.
  * Ruta relativa a propósito, para que funcione desde cualquier dominio.
  */
-export function urlTarjetaVale(codigo: string, descargar = false) {
-  const c = encodeURIComponent(codigo);
-  return `/api/vales/${c}/tarjeta?formato=tarjeta${descargar ? "&descargar=1" : ""}`;
+export function urlTarjetaVale(token: string, descargar = false) {
+  const t = encodeURIComponent(token);
+  return `/api/v/${t}/imagen?formato=tarjeta${descargar ? "&descargar=1" : ""}`;
 }
 
 export function urlPdfVale(codigo: string, descargar = false) {
@@ -72,11 +75,13 @@ export function urlPdfVale(codigo: string, descargar = false) {
 export function mensajeVale({
   nombre,
   codigo,
+  token,
   descuento,
   vigencia,
 }: {
   nombre: string;
   codigo: string;
+  token: string;
   descuento: number;
   /** Ya formateada, p. ej. "12 sep 2026". */
   vigencia: string;
@@ -91,7 +96,7 @@ export function mensajeVale({
     `Vigente hasta el ${vigencia}`,
     "",
     "Preséntalo en tienda desde este enlace:",
-    urlPublicaVale(codigo),
+    urlPublicaVale(token),
   ].join("\n");
 }
 

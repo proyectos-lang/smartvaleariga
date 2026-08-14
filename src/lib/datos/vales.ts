@@ -6,6 +6,7 @@ import type {
   ResumenRango,
   TipoVale,
   ValeDetalle,
+  ValePorVencer,
   ValeValidado,
 } from "@/lib/supabase/types";
 
@@ -77,6 +78,45 @@ export async function valePorCodigo(codigo: string): Promise<ValeDetalle | null>
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+/**
+ * Un vale por su token público.
+ *
+ * Es la única forma de llegar a un vale sin sesión. La búsqueda distingue
+ * mayúsculas a propósito —el token es base64url— y no admite el código: si
+ * aceptara ambos, la enumeración por correlativo volvería por la puerta de
+ * atrás.
+ */
+export async function valePorToken(token: string): Promise<ValeDetalle | null> {
+  const limpio = token.trim();
+  if (limpio.length < 16) return null;
+
+  const { data, error } = await db()
+    .from("vw_vales_detalle")
+    .select("*")
+    .eq("token", limpio)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/** Vales vigentes que están por vencer, de más urgente a menos. */
+export async function valesPorVencer(
+  usuarioId: number | null,
+  dias?: number,
+): Promise<ValePorVencer[]> {
+  const { data, error } = await db().rpc("fn_vales_por_vencer", {
+    p_usuario_id: usuarioId,
+    p_dias: dias ?? null,
+  });
+
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "PGRST205") return [];
+    throw new Error(`No se pudieron leer los vales por vencer: ${error.message}`);
+  }
+  return data ?? [];
 }
 
 /**

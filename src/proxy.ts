@@ -24,22 +24,21 @@ const COOKIE_SESION = "ariga_sesion";
 /** Accesibles sin sesión. */
 const RUTAS_PUBLICAS = ["/login"];
 
-/** Cara pública del vale: es lo que abre quien recibe el WhatsApp. */
-const PREFIJOS_PUBLICOS = ["/v/", "/api/qr"];
-
 /**
- * La imagen de la tarjeta tiene que ser alcanzable sin sesión: quien la pide
- * es el servidor de WhatsApp al generar la vista previa del enlace, y ahí no
- * hay cookies. El PDF del mismo vale, en cambio, sigue protegido: es material
- * interno. Por eso es un patrón exacto y no un prefijo sobre /api/vales.
+ * Cara pública del vale: es lo que abre quien recibe el WhatsApp, y lo que
+ * pide el servidor de WhatsApp para la vista previa —ahí no hay cookies—.
+ *
+ * Todo lo público cuelga de `/v/` o `/api/v/` y se alcanza por token, nunca
+ * por código. Lo interno vive bajo `/api/vales/` y sigue exigiendo sesión:
+ * separarlo por la forma de la URL evita que una ruta nueva quede abierta
+ * por descuido.
  */
-const PATRONES_PUBLICOS = [/^\/api\/vales\/[^/]+\/tarjeta$/];
+const PREFIJOS_PUBLICOS = ["/v/", "/api/v/", "/api/qr"];
 
 function esPublica(pathname: string) {
   return (
     RUTAS_PUBLICAS.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ||
-    PREFIJOS_PUBLICOS.some((r) => pathname.startsWith(r)) ||
-    PATRONES_PUBLICOS.some((r) => r.test(pathname))
+    PREFIJOS_PUBLICOS.some((r) => pathname.startsWith(r))
   );
 }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Sheet } from "lucide-react";
 
 import { Tarjeta, TarjetaIndicador } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
@@ -75,6 +76,16 @@ export default async function PaginaReportes({
 
   return (
     <>
+      <div className="flex justify-end">
+        <a
+          href="/api/reportes/excel"
+          className="border-ink/16 text-ink/70 hover:border-gold hover:text-ink rounded-field flex items-center gap-2 border px-4 py-[10px] text-[12px] font-medium transition-colors"
+        >
+          <Sheet size={15} />
+          Exportar a Excel
+        </a>
+      </div>
+
       {/* Cifra principal: una sola por vista */}
       <Tarjeta className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col gap-2">

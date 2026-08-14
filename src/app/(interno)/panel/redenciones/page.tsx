@@ -137,6 +137,7 @@ export default async function PaginaRedenciones({
                       {r.comprador}
                     </span>
                     <span className="text-ink/42 truncate text-[11px]">
+                      {r.referido_por ? `vía ${r.referido_por} · ` : ""}
                       {r.tienda} · ticket {r.ticket} ·{" "}
                       {fechaHora(r.fecha_creacion)}
                     </span>

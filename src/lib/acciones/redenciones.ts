@@ -43,14 +43,22 @@ const EsquemaRedencion = z.object({
       (v) => v.length >= 7 && v.length <= 15,
       "El teléfono debe tener entre 7 y 15 dígitos, incluyendo la clave del país.",
     ),
+  // Opcional a propósito: en caja frena la fila y mucha gente no lo da.
+  // Si se escribe, tiene que estar bien; si no, se guarda sin correo.
   correo: z
     .string()
     .trim()
     .toLowerCase()
+    .transform((v) => (v === "" ? null : v))
     .refine(
-      (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-      "Escribe el correo del comprador.",
+      (v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+      "El correo no tiene un formato válido.",
     ),
+  referidoPor: z
+    .string()
+    .trim()
+    .max(120, "El nombre es demasiado largo.")
+    .transform((v) => (v === "" ? null : v)),
   monto: Monto.refine((v) => v > 0, "El monto debe ser mayor que cero."),
   descuento: z
     .string()
@@ -90,6 +98,7 @@ export async function registrarRedencion(
     descuento: formData.get("descuento") ?? "",
     ticket: formData.get("ticket") ?? "",
     nota: formData.get("nota") ?? "",
+    referidoPor: formData.get("referidoPor") ?? "",
   });
 
   if (!r.success) {
@@ -121,6 +130,7 @@ export async function registrarRedencion(
     p_ticket: d.ticket,
     p_descuento: d.descuento,
     p_nota: d.nota,
+    p_referido_por: d.referidoPor,
   });
 
   if (error) {

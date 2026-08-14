@@ -155,6 +155,8 @@ export type Database = {
         Row: {
           id: number;
           codigo: string;
+          /** Identificador del enlace público. El código es para dictarlo. */
+          token: string;
           tipo: TipoVale;
           correlativo: number;
           usuario_id: number;
@@ -188,6 +190,8 @@ export type Database = {
           descuento_aplicado: number;
           ticket: string;
           nota: string | null;
+          /** Quién le pasó el vale. Nulo = lo usó el propio portador. */
+          referido_por: string | null;
           fecha_creacion: string;
         };
         Insert: never;
@@ -222,6 +226,7 @@ export type Database = {
         Row: {
           id: number;
           codigo: string;
+          token: string;
           tipo: TipoVale;
           correlativo: number;
           segmento: SegmentoA1 | null;
@@ -233,6 +238,8 @@ export type Database = {
           motivo_anulacion: string | null;
           fecha_creacion: string;
           estado: EstadoVale;
+          /** Negativo si ya venció. */
+          dias_restantes: number;
           usuario_id: number;
           emisora: string;
           contacto_id: number;
@@ -242,6 +249,8 @@ export type Database = {
           tienda_id: number | null;
           tienda: string | null;
           total_redenciones: number;
+          /** Compras que llegaron por difusión, no del propio portador. */
+          redenciones_difundidas: number;
           ingreso_generado: number;
           descuento_otorgado: number;
           ultima_redencion: string | null;
@@ -350,6 +359,8 @@ export type Database = {
         Row: {
           vales_a2: number;
           redenciones_a2: number;
+          redenciones_difundidas: number;
+          porcentaje_difusion: number | null;
           redenciones_por_vale: number | null;
           alcance_maximo: number | null;
           vales_compartidos: number;
@@ -389,6 +400,7 @@ export type Database = {
         Returns: {
           vale_id: number;
           codigo: string;
+          token: string;
           tipo: TipoVale;
           segmento: SegmentoA1 | null;
           descuento_pct: number;
@@ -410,13 +422,33 @@ export type Database = {
           p_tienda_id: number;
           p_nombre: string;
           p_telefono: string;
-          p_correo: string | null;
+          /** Opcional: en caja frena la fila y mucha gente no lo da. */
+          p_correo?: string | null;
           p_monto: number;
           p_ticket: string;
           p_descuento?: number | null;
           p_nota?: string | null;
+          p_referido_por?: string | null;
         };
         Returns: Database["smartvale"]["Tables"]["redenciones"]["Row"];
+      };
+
+      fn_vales_por_vencer: {
+        Args: { p_usuario_id?: number | null; p_dias?: number | null };
+        Returns: {
+          vale_id: number;
+          codigo: string;
+          token: string;
+          tipo: TipoVale;
+          descuento_pct: number;
+          portador: string;
+          portador_telefono: string;
+          emisora: string;
+          usuario_id: number;
+          fecha_vencimiento: string;
+          dias_restantes: number;
+          total_redenciones: number;
+        }[];
       };
 
       fn_anular_vale: {
@@ -525,6 +557,8 @@ export type ValeValidado =
   Esquema["Functions"]["fn_validar_vale"]["Returns"][number];
 export type ResumenRango =
   Esquema["Functions"]["fn_resumen_rango"]["Returns"][number];
+export type ValePorVencer =
+  Esquema["Functions"]["fn_vales_por_vencer"]["Returns"][number];
 
 /* ── Etiquetas para la interfaz ─────────────────────────────────────────── */
 

@@ -18,11 +18,14 @@ import {
  */
 export function FormularioRedencion({
   codigo,
+  portador,
   descuentoPct,
   tiendas,
   tiendaPredeterminada,
 }: {
   codigo: string;
+  /** Nombre del portador: se sugiere como valor por omisión del referidor. */
+  portador: string;
   descuentoPct: number;
   tiendas: { id: number; nombre: string }[];
   tiendaPredeterminada: number | null;
@@ -75,13 +78,21 @@ export function FormularioRedencion({
         <CampoTelefono error={campo("telefono")} />
 
         <Campo
-          etiqueta="CORREO ELECTRÓNICO"
+          etiqueta="CORREO (OPCIONAL)"
           name="correo"
           type="email"
           placeholder="comprador@correo.com"
           autoComplete="email"
           error={campo("correo")}
-          required
+        />
+
+        {/* La cadena de difusión: sin esto, un vale A2 que recorrió cinco
+            personas se ve igual que uno que usó su portador. */}
+        <Campo
+          etiqueta="¿QUIÉN LE COMPARTIÓ EL VALE? (OPCIONAL)"
+          name="referidoPor"
+          placeholder={`Déjalo vacío si lo usa ${portador.split(" ")[0]}`}
+          error={campo("referidoPor")}
         />
       </div>
 

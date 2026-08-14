@@ -8,17 +8,19 @@ import { ChipTipo } from "@/components/vales/chip-tipo";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { alcanceDe } from "@/lib/auth/guardas";
 import { metricasGenerales } from "@/lib/datos/metricas";
-import { cupoDe, valesRecientes } from "@/lib/datos/vales";
+import { cupoDe, valesPorVencer, valesRecientes } from "@/lib/datos/vales";
+import { PorVencer } from "@/components/vales/por-vencer";
 import { fecha, monedaCompacta, monedaCorta } from "@/lib/format";
 
 export default async function PaginaPanel() {
   const sesion = await requerirSesion();
   const alcance = alcanceDe(sesion);
 
-  const [metricas, recientes, cupo] = await Promise.all([
+  const [metricas, recientes, cupo, porVencer] = await Promise.all([
     metricasGenerales(alcance),
     valesRecientes(alcance, 6),
     sesion.rol === "vendedora" ? cupoDe(sesion.usuarioId) : Promise.resolve(null),
+    valesPorVencer(alcance),
   ]);
 
   const conversion =
@@ -66,6 +68,9 @@ export default async function PaginaPanel() {
 
       {/* Cupo del rango: si se agota, no se pueden emitir vales */}
       {cupo ? <AvisoCupo cupo={cupo} /> : null}
+
+      {/* Antes que las cifras: es lo único con fecha límite */}
+      <PorVencer vales={porVencer} mostrarEmisora={sesion.rol === "admin"} />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaIndicador

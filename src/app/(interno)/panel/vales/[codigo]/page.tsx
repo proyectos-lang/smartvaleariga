@@ -79,6 +79,7 @@ export default async function PaginaVale({
         <TarjetaVale
           vale={{
             codigo: vale.codigo,
+            token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
             descuento: Number(vale.descuento_pct),
@@ -147,6 +148,7 @@ export default async function PaginaVale({
                         {r.comprador}
                       </span>
                       <span className="text-ink/42 truncate text-[11px]">
+                        {r.referido_por ? `vía ${r.referido_por} · ` : ""}
                         {r.tienda} · ticket {r.ticket} ·{" "}
                         {fechaHora(r.fecha_creacion)}
                       </span>

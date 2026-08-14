@@ -9,6 +9,8 @@ export type RedencionDetalle = {
   monto_compra: number;
   descuento_aplicado: number;
   ticket: string;
+  /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
+  referido_por: string | null;
   nota: string | null;
   fecha_creacion: string;
   vale_id: number;
@@ -29,7 +31,7 @@ function unico<T>(valor: T | T[] | null): T | null {
 }
 
 const SELECCION = `
-  id, monto_compra, descuento_aplicado, ticket, nota, fecha_creacion, vale_id,
+  id, monto_compra, descuento_aplicado, ticket, nota, referido_por, fecha_creacion, vale_id,
   vales!inner(codigo, usuario_id),
   contactos!inner(nombre, telefono, correo),
   tiendas!inner(nombre),
@@ -41,6 +43,8 @@ type FilaCruda = {
   monto_compra: number;
   descuento_aplicado: number;
   ticket: string;
+  /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
+  referido_por: string | null;
   nota: string | null;
   fecha_creacion: string;
   vale_id: number;
@@ -63,6 +67,7 @@ function normalizar(fila: FilaCruda): RedencionDetalle {
     monto_compra: Number(fila.monto_compra),
     descuento_aplicado: Number(fila.descuento_aplicado),
     ticket: fila.ticket,
+    referido_por: fila.referido_por,
     nota: fila.nota,
     fecha_creacion: fila.fecha_creacion,
     vale_id: fila.vale_id,

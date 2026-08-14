@@ -134,6 +134,8 @@ export async function viralidadA2(): Promise<ViralidadA2> {
     data ?? {
       vales_a2: 0,
       redenciones_a2: 0,
+      redenciones_difundidas: 0,
+      porcentaje_difusion: null,
       redenciones_por_vale: null,
       alcance_maximo: null,
       vales_compartidos: 0,

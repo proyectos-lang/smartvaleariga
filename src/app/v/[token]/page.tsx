@@ -2,13 +2,17 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { TarjetaVale } from "@/components/vales/tarjeta-vale";
-import { valePorCodigo } from "@/lib/datos/vales";
+import { valePorToken } from "@/lib/datos/vales";
 import { urlImagenVale, urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
 import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 /**
  * Cara pública del vale: lo que abre quien recibe el enlace por WhatsApp.
+ *
+ * Se llega por **token**, no por código. El correlativo es consecutivo, así
+ * que con el código en la URL cualquiera podía recorrer `000000, 000001…` y
+ * cosechar descuentos válidos sin que se los hubieran entregado.
  *
  * No exige sesión. Muestra solo lo que ya lleva impreso la tarjeta —código,
  * descuento, vigencia y nombre del portador—; nunca el teléfono ni el correo,
@@ -17,9 +21,9 @@ import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/v/[codigo]">): Promise<Metadata> {
-  const { codigo } = await params;
-  const vale = await valePorCodigo(decodeURIComponent(codigo));
+}: PageProps<"/v/[token]">): Promise<Metadata> {
+  const { token } = await params;
+  const vale = await valePorToken(decodeURIComponent(token));
 
   if (!vale) return { title: "Vale no encontrado" };
 
@@ -34,17 +38,17 @@ export async function generateMetadata({
     openGraph: {
       title: titulo,
       description: descripcion,
-      url: urlPublicaVale(vale.codigo),
+      url: urlPublicaVale(vale.token),
       siteName: "ARIGA Joyería",
-      images: [{ url: urlImagenVale(vale.codigo), width: 1200, height: 630 }],
+      images: [{ url: urlImagenVale(vale.token), width: 1200, height: 630 }],
       type: "website",
-      locale: "es_MX",
+      locale: "es_GT",
     },
     twitter: {
       card: "summary_large_image",
       title: titulo,
       description: descripcion,
-      images: [urlImagenVale(vale.codigo)],
+      images: [urlImagenVale(vale.token)],
     },
     robots: { index: false, follow: false },
   };
@@ -52,9 +56,9 @@ export async function generateMetadata({
 
 export default async function PaginaPublicaVale({
   params,
-}: PageProps<"/v/[codigo]">) {
-  const { codigo } = await params;
-  const vale = await valePorCodigo(decodeURIComponent(codigo));
+}: PageProps<"/v/[token]">) {
+  const { token } = await params;
+  const vale = await valePorToken(decodeURIComponent(token));
 
   if (!vale) notFound();
 
@@ -67,6 +71,7 @@ export default async function PaginaPublicaVale({
           compacta
           vale={{
             codigo: vale.codigo,
+            token: vale.token,
             tipo: vale.tipo,
             estado: vale.estado,
             descuento: Number(vale.descuento_pct),

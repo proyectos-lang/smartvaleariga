@@ -206,6 +206,7 @@ export default async function PaginaValidacion({
             ) : (
               <FormularioRedencion
                 codigo={vale.codigo}
+                portador={vale.portador}
                 descuentoPct={descuento}
                 tiendas={tiendas.map((t) => ({ id: t.id, nombre: t.nombre }))}
                 tiendaPredeterminada={sesion.tiendaId}
