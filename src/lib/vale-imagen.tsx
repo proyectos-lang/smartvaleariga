@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 
-import { LOGO_DATA_URL } from "@/lib/marca-datos";
+import { LOGO_DATA_URL, SELLO_DATA_URL } from "@/lib/marca-datos";
 import {
   MONO_500,
   SANS_400,
@@ -254,6 +254,34 @@ function Descuentos({
   );
 }
 
+/**
+ * Sello «compártelo», arriba a la derecha.
+ *
+ * Se dibuja a su tamaño natural (129×125): ampliarlo lo emborronaría. La
+ * esquina de arriba a la derecha es la única libre —los trazos dorados van
+ * en la contraria y en la de abajo.
+ */
+function Sello({ ancho, margen }: { ancho: number; margen: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        display: "flex",
+        top: margen,
+        right: margen,
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={SELLO_DATA_URL}
+        width={ancho}
+        height={Math.round((ancho * 125) / 129)}
+        alt=""
+      />
+    </div>
+  );
+}
+
 function Icono({ trazos, lado }: { trazos: TrazoIcono[]; lado: number }) {
   return (
     <svg
@@ -300,6 +328,8 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
     >
       <Textura opacidad={0.85} />
       <Esquinas margen={22} lado={54} />
+      {/* Un vale muerto no invita a compartirse. */}
+      {vigente ? <Sello ancho={124} margen={34} /> : null}
 
       <Marca logo={112} marca={44} joyeria={14} />
 
@@ -477,6 +507,9 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
     >
       <Textura opacidad={0.85} />
       <Esquinas margen={20} lado={48} />
+      {/* Más pequeño que en la vertical: aquí compite con el QR, y WhatsApp
+          enseña esta imagen a menos de la mitad de ancho. */}
+      {vale.estado === "activo" ? <Sello ancho={92} margen={30} /> : null}
 
       <div
         style={{

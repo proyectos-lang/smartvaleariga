@@ -8,11 +8,15 @@
  *   public/brand/ariga-logo.png   maestro que usa la interfaz
  *   src/app/icon.png              favicon (Next deriva las medidas)
  *   src/app/apple-icon.png        icono de pantalla de inicio en iOS
- *   src/lib/marca-datos.ts        el logo en base64
+ *   src/lib/marca-datos.ts        el logo y el sello, en base64
  *
  * El último hace falta porque la imagen de la tarjeta (`next/og`) y el PDF
  * se arman en el servidor: leer de `public/` o pedirlo por red desde una
  * función serverless es frágil, y empotrarlo no falla nunca.
+ *
+ * El sello «compártelo» sale de `public/logovale.png` tal cual, sin derivar
+ * nada de él. Para cambiarlo basta sustituir ese archivo y volver a correr
+ * este comando.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -76,19 +80,29 @@ const empotrado = await sharp(cuadrado)
   .png({ compressionLevel: 9, palette: true })
   .toBuffer();
 
+// El sello va a su tamaño natural: en la tarjeta se dibuja a ~120 px y
+// ampliarlo no le añadiría detalle, solo peso al módulo.
+const sello = await sharp(path.join(raiz, "public", "logovale.png"))
+  .png({ compressionLevel: 9 })
+  .toBuffer();
+
 const modulo = `/**
- * Logotipo de ARIGA en base64.
+ * Imágenes de marca en base64.
  *
  * GENERADO por scripts/generar-marca.mjs. No editar a mano: se regenera con
  * \`npm run marca:generar\`.
  *
- * Va empotrado porque lo consumen la imagen de la tarjeta (\`next/og\`) y el
- * PDF, que se arman en el servidor: leer de \`public/\` o pedirlo por red
+ * Van empotradas porque las consumen la imagen de la tarjeta (\`next/og\`) y
+ * el PDF, que se arman en el servidor: leer de \`public/\` o pedirlo por red
  * desde una función serverless es frágil.
  */
 
 export const LOGO_DATA_URL =
   "data:image/png;base64,${empotrado.toString("base64")}";
+
+/** Sello «compártelo», arriba a la derecha del vale. De public/logovale.png. */
+export const SELLO_DATA_URL =
+  "data:image/png;base64,${sello.toString("base64")}";
 `;
 
 await writeFile(path.join(raiz, "src", "lib", "marca-datos.ts"), modulo, "utf8");

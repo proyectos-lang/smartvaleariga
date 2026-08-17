@@ -134,6 +134,21 @@ export function TarjetaVale({
           style={{ borderColor: PALETA.oro }}
         />
 
+        {/*
+          Sello «compártelo». Aquí sí se lee de `public/`, que es lo natural
+          en el navegador; en el PNG del servidor va empotrado en base64.
+          Un vale muerto no invita a compartirse.
+        */}
+        {vigente ? (
+          <Image
+            src="/logovale.png"
+            alt="Compártelo y haz feliz a alguien más"
+            width={129}
+            height={125}
+            className="pointer-events-none absolute top-4 right-4 h-auto w-[60px]"
+          />
+        ) : null}
+
         <div className="relative flex flex-col items-center px-6 py-8 sm:px-8">
           <Image
             src="/brand/ariga-logo.png"
