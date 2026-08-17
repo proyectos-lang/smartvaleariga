@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { db } from "@/lib/supabase/server";
 import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
+import { SEGMENTO_A1_FIJO } from "@/lib/supabase/types";
 
 /**
  * Emisión de vales.
@@ -16,8 +17,6 @@ import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
  * los datos y se traduce el error de la base a algo que la vendedora
  * entienda sin ver un código SQL.
  */
-
-const SEGMENTOS = ["A1-30", "A1-60", "A1-90", "A1-VIP"] as const;
 
 /** Código del vale de quien refirió. Se acepta en cualquier caja y forma. */
 const CodigoVale = z
@@ -54,7 +53,9 @@ const Comun = {
 
 const EsquemaA1 = z.object({
   ...Comun,
-  segmento: z.enum(SEGMENTOS, { message: "Elige la clasificación del cliente." }),
+  // La clasificación ya no se pide: la pone el servidor con
+  // `SEGMENTO_A1_FIJO`. No se acepta del formulario ni siquiera oculta, para
+  // que nadie pueda colar otra por su cuenta.
   // Solo cuando el A1 nace de convertir un A4: guarda de quién venía.
   valeOrigen: z
     .string()
@@ -123,7 +124,6 @@ export async function emitirVale(
     nombre: formData.get("nombre") ?? "",
     telefono: formData.get("telefono") ?? "",
     correo: formData.get("correo") ?? "",
-    segmento: formData.get("segmento") ?? undefined,
     origen: formData.get("origen") ?? "",
     tiendaId: formData.get("tiendaId") ?? "",
     valeOrigen: formData.get("valeOrigen") ?? "",
@@ -139,7 +139,8 @@ export async function emitirVale(
     const r = EsquemaA1.safeParse(bruto);
     if (!r.success) return primerError(r.error);
     datos = r.data;
-    segmento = r.data.segmento;
+    // `fn_emitir_vale` sigue exigiendo segmento en A1; lo pone el servidor.
+    segmento = SEGMENTO_A1_FIJO;
     valeOrigen = r.data.valeOrigen;
   } else if (tipo === "A2") {
     const r = EsquemaA2.safeParse(bruto);

@@ -657,3 +657,13 @@ export const ETIQUETA_SEGMENTO: Record<SegmentoA1, string> = {
   "A1-90": "Compró hace 90 días",
   "A1-VIP": "Cliente VIP",
 };
+
+/**
+ * Clasificación con la que salen todos los A1 nuevos.
+ *
+ * La campaña ofrece lo mismo a toda la base histórica, así que preguntar
+ * cuándo compró por última vez era un paso que no cambiaba nada del vale. El
+ * enum conserva los cuatro valores: los A1 ya emitidos guardan el suyo y los
+ * reportes siguen separándolos.
+ */
+export const SEGMENTO_A1_FIJO: SegmentoA1 = "A1-VIP";

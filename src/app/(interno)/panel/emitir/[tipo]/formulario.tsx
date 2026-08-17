@@ -2,18 +2,17 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { Star } from "lucide-react";
 
 import { Boton } from "@/components/ui/boton";
 import { Campo, Selector } from "@/components/ui/campo";
 import { CampoTelefono } from "@/components/vales/campo-telefono";
 import { emitirVale, type EstadoEmision } from "@/lib/acciones/vales";
 import { Tarifas } from "@/components/vales/tarifas";
-import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
-import { ETIQUETA_SEGMENTO } from "@/lib/supabase/types";
+import type { TipoVale } from "@/lib/supabase/types";
+import { ETIQUETA_SEGMENTO, SEGMENTO_A1_FIJO } from "@/lib/supabase/types";
 
 export type OpcionTienda = { id: number; nombre: string };
-
-const SEGMENTOS: SegmentoA1[] = ["A1-30", "A1-60", "A1-90", "A1-VIP"];
 
 export type Prefijado = {
   nombre?: string;
@@ -106,26 +105,29 @@ export function FormularioEmision({
         <input type="hidden" name="valeOrigen" value={prefijado.valeOrigen} />
       ) : null}
 
+      {/*
+        La clasificación dejó de preguntarse: todos los A1 salen como cliente
+        VIP. No cambiaba el descuento —la campaña ofrece lo mismo a toda la
+        base— así que era un paso más sin efecto sobre el vale.
+
+        Se enseña igualmente, y no como campo oculto, para que la vendedora
+        sepa qué queda registrado. El valor lo pone el servidor.
+      */}
       {tipo === "A1" ? (
-        <Selector
-          etiqueta="CLASIFICACIÓN DEL CLIENTE"
-          name="segmento"
-          defaultValue=""
-          error={campo("segmento")}
-          // Ya no cambia el descuento —la campaña ofrece lo mismo a todos—
-          // pero sigue siendo el dato que dice de qué parte de la base salió.
-          ayuda="Para el reporte. El descuento es el mismo en los cuatro casos."
-          required
-        >
-          <option value="" disabled>
-            Elige cuándo compró por última vez…
-          </option>
-          {SEGMENTOS.map((s) => (
-            <option key={s} value={s}>
-              {ETIQUETA_SEGMENTO[s]}
-            </option>
-          ))}
-        </Selector>
+        <div className="flex flex-col gap-[7px]">
+          <span className="text-ink/45 tracking-label text-[9px] font-medium">
+            CLASIFICACIÓN DEL CLIENTE
+          </span>
+          <div className="border-ink/14 bg-ink/3 rounded-field flex items-center gap-2 border px-[14px] py-[13px]">
+            <Star size={14} className="text-gold-dark shrink-0" />
+            <span className="text-ink text-sm">
+              {ETIQUETA_SEGMENTO[SEGMENTO_A1_FIJO]}
+            </span>
+          </div>
+          <span className="text-ink/40 text-[11px] leading-relaxed">
+            Todos los vales A1 se emiten con esta clasificación.
+          </span>
+        </div>
       ) : null}
 
       {tipo === "A2" ? (
