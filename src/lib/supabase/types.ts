@@ -493,8 +493,13 @@ export type Database = {
           p_nombre: string;
           p_telefono: string;
           p_correo?: string | null;
-          /** Si viene, el vale sale A4 ligado a quien lo refirió. */
+          /**
+           * Si viene, el vale sale A4 ligado a quien lo refirió. El
+           * formulario público dejó de preguntarlo y manda siempre null.
+           */
           p_codigo_referidor?: string | null;
+          /** La asesora que atendió. Obligatoria: sin ella la base rechaza. */
+          p_usuario_id?: number | null;
         };
         Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
       };

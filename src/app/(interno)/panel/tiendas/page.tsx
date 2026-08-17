@@ -17,7 +17,8 @@ export default async function PaginaTiendas() {
   await requerirAdmin();
   const [tiendas, descuentos] = await Promise.all([
     listarTiendas(false),
-    descuentosVigentes(),
+    // El QR de la tienda solo emite A3, que desde ahora tiene tarifa propia.
+    descuentosVigentes("A3"),
   ]);
   const descuentoA3 = descuentos.oro;
 

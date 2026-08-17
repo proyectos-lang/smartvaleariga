@@ -5,7 +5,7 @@ import { Building2, PhoneCall, Store, UserPlus } from "lucide-react";
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { Tarifas } from "@/components/vales/tarifas";
 import { requerirSesion } from "@/lib/auth/guardas";
-import { descuentosVigentes } from "@/lib/datos/configuracion";
+import { descuentosPorTipo } from "@/lib/datos/configuracion";
 import { cupoDe } from "@/lib/datos/vales";
 
 export const metadata: Metadata = { title: "Emitir vale" };
@@ -60,8 +60,8 @@ export default async function PaginaEmitir() {
   // El cupo se consulta también para el administrador: `fn_emitir_vale` exige
   // rango a cualquier cuenta, así que sin él tampoco puede emitir. Mejor
   // decírselo aquí que dejarlo llenar el formulario para fallar al enviar.
-  const [descuentos, cupo] = await Promise.all([
-    descuentosVigentes(),
+  const [tarifas, cupo] = await Promise.all([
+    descuentosPorTipo(),
     cupoDe(sesion.usuarioId),
   ]);
 
@@ -130,17 +130,17 @@ export default async function PaginaEmitir() {
                 {detalle}
               </p>
 
-              {/* La oferta es la misma en las tres puertas: lo que cambia el
-                  descuento es el material, no de dónde viene el cliente. */}
+              {/* Cada puerta con la suya: el A3 tiene tarifa propia, así que
+                  ya no se puede enseñar una sola cifra para todas. */}
               <div className="border-ink/8 flex items-center justify-between border-t pt-3">
                 <Tarifas
-                  oro={descuentos.oro}
-                  plata={descuentos.plata}
+                  oro={tarifas[tipo].oro}
+                  plata={tarifas[tipo].plata}
                   tamano="compacto"
                   className="text-ink/40"
                 />
                 <span className="text-ink/40 text-[11px]">
-                  {descuentos.diasVigencia} días
+                  {tarifas[tipo].diasVigencia} días
                 </span>
               </div>
             </>

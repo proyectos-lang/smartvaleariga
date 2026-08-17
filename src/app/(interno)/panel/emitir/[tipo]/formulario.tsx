@@ -35,7 +35,7 @@ export function FormularioEmision({
   prefijado = null,
 }: {
   tipo: TipoVale;
-  /** Las mismas para todos los tipos: lo que diferencia es el material. */
+  /** Las de este tipo: el A3 tiene tarifa propia. */
   tarifas: { oro: number; plata: number };
   tiendas: OpcionTienda[];
   tiendaPredeterminada: number | null;
@@ -57,7 +57,7 @@ export function FormularioEmision({
       <div className="border-gold/30 bg-gold/6 rounded-card text-gold-deep flex items-center justify-between gap-4 border px-5 py-4">
         <Tarifas oro={tarifas.oro} plata={tarifas.plata} />
         <span className="text-ink/45 max-w-[130px] text-right text-[11px] leading-relaxed">
-          Igual para todos los vales
+          Tarifa del vale {tipo}
         </span>
       </div>
 

@@ -41,7 +41,7 @@ export default async function PaginaFormulario({
   const { de } = await searchParams;
 
   const [descuentos, tiendas, cupo] = await Promise.all([
-    descuentosVigentes(),
+    descuentosVigentes(tipo),
     listarTiendas(),
     cupoDe(sesion.usuarioId),
   ]);

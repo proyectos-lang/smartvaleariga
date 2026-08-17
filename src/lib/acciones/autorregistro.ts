@@ -13,9 +13,13 @@ import { db } from "@/lib/supabase/server";
  * vuelve a escanear recupera su vale en vez de generar otro, lo que a la vez
  * es lo que espera y lo que impide inflar la base a base de recargar.
  *
- * Si el cliente escribe el código del vale que alguien le enseñó, el vale
- * que sale es A4 y queda ligado a quien lo mandó; si lo deja vacío, sale A3
- * como siempre.
+ * La asesora es obligatoria: es lo que hace que la venta se le acredite a
+ * alguien. La tienda no se pregunta —sale del token del QR, que está pegado
+ * en ese mostrador y en ningún otro.
+ *
+ * El formulario ya no pregunta por el vale de quien te refirió, así que de
+ * aquí solo salen A3. La base conserva el camino del A4 por si se vuelve a
+ * abrir; los A4 siguen emitiéndose desde el panel.
  */
 
 const Registro = z.object({
@@ -47,17 +51,13 @@ const Registro = z.object({
       (v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
       "El correo no tiene un formato válido.",
     ),
-  // Si el cliente escribe el código del vale que le enseñaron, entra como
-  // referido (A4) en vez de como visitante (A3).
-  codigoReferidor: z
+  // Quién lo atendió. Llega como texto del <select>; el id lo valida la
+  // base contra las cuentas activas, que es donde puede cambiar.
+  asesora: z
     .string()
     .trim()
-    .toUpperCase()
-    .transform((v) => (v === "" ? null : v))
-    .refine(
-      (v) => v === null || /^AR-A[1-4]-[A-Z0-9-]+$/.test(v),
-      "Ese no parece un código de vale. Debe empezar por AR-.",
-    ),
+    .refine((v) => /^\d+$/.test(v), "Elige quién te atendió en la tienda.")
+    .transform(Number),
 });
 
 export type EstadoRegistro = {
@@ -75,7 +75,7 @@ export async function registrarVisitante(
     nombre: formData.get("nombre") ?? "",
     telefono: formData.get("telefono") ?? "",
     correo: formData.get("correo") ?? "",
-    codigoReferidor: formData.get("codigoReferidor") ?? "",
+    asesora: formData.get("asesora") ?? "",
   });
 
   if (!r.success) {
@@ -94,14 +94,15 @@ export async function registrarVisitante(
     // lo consume `wa.me`. Sin ella el mismo cliente entraría dos veces.
     p_telefono: `${r.data.clave}${r.data.telefono}`,
     p_correo: r.data.correo,
-    p_codigo_referidor: r.data.codigoReferidor,
+    p_codigo_referidor: null,
+    p_usuario_id: r.data.asesora,
   });
 
   if (error) {
-    // SV009 es el código del referidor: hay que señalar ese campo, no la
-    // pantalla entera, porque es lo único que el cliente puede corregir.
-    if (error.code === "SV009") {
-      return { error: error.message, campos: { codigoReferidor: error.message } };
+    // SV010 es la asesora: se señala ese campo y no la pantalla entera,
+    // porque es lo único que el cliente puede corregir.
+    if (error.code === "SV010") {
+      return { error: error.message, campos: { asesora: error.message } };
     }
     // SV006/7/8 traen mensajes escritos para el cliente; el resto no.
     if (["SV006", "SV007", "SV008"].includes(error.code)) {

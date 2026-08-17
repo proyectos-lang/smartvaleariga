@@ -6,6 +6,7 @@ import {
   registrarVisitante,
   type EstadoRegistro,
 } from "@/lib/acciones/autorregistro";
+import type { Asesora } from "@/lib/datos/usuarios";
 
 /**
  * Formulario que ve el cliente en su propio teléfono.
@@ -18,9 +19,14 @@ import {
 export function FormularioRegistro({
   token,
   clavePais,
+  asesoras,
+  tienda,
 }: {
   token: string;
   clavePais: string;
+  /** Las de esta tienda: es a quien tiene delante. */
+  asesoras: Asesora[];
+  tienda: string;
 }) {
   const [estado, accion, enviando] = useActionState<EstadoRegistro, FormData>(
     registrarVisitante,
@@ -83,27 +89,61 @@ export function FormularioRegistro({
         )}
       </label>
 
-      {/* Lo que convierte el registro en A4. Va después del teléfono porque
-          la mayoría llega sin código y no debe tropezar con esto. */}
+      {/* Lo que acredita la venta. Obligatorio: sin esto el vale no queda a
+          nombre de nadie. El punto de venta no se pregunta —sale del QR. */}
       <label className="flex flex-col gap-2">
         <span className="text-bone/50 text-[11px] font-medium tracking-[0.16em]">
-          ¿ALGUIEN TE ENSEÑÓ SU VALE? (OPCIONAL)
+          ¿QUIÉN TE ATENDIÓ?
         </span>
-        <input
-          name="codigoReferidor"
-          placeholder="AR-A2-000045"
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          className={`${clases} font-mono`}
-        />
-        {campo("codigoReferidor") ? (
-          <span className="text-clay text-[12px]">
-            {campo("codigoReferidor")}
-          </span>
+        {/*
+          `invalid:` mantiene el rótulo apagado mientras no se elige nada: la
+          opción vacía está deshabilitada y el campo es obligatorio, así que
+          el select nace inválido y se ve como un marcador de posición y no
+          como una respuesta ya dada.
+
+          La flecha es un SVG encima, no una imagen de fondo: el valor
+          arbitrario de Tailwind que usa el selector del panel lleva espacios
+          literales, así que el navegador parte la clase y no llega a
+          aplicarse. Sin flecha, el campo parecía de escritura.
+        */}
+        <div className="relative">
+          <select
+            name="asesora"
+            defaultValue=""
+            className={`${clases} invalid:text-bone/30 cursor-pointer appearance-none pr-11`}
+            required
+          >
+            <option value="" disabled>
+              Elige a tu asesora
+            </option>
+            {asesoras.map((a) => (
+              <option key={a.id} value={a.id} className="text-ink">
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="text-bone/50 pointer-events-none absolute top-1/2 right-4 -translate-y-1/2"
+            width={12}
+            height={8}
+            viewBox="0 0 10 6"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M1 1l4 4 4-4"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        {campo("asesora") ? (
+          <span className="text-clay text-[12px]">{campo("asesora")}</span>
         ) : (
           <span className="text-bone/35 text-[12px]">
-            Escribe el código de su vale y lo registramos como quien te trajo.
+            Así le acreditamos tu visita a {tienda}.
           </span>
         )}
       </label>

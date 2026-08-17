@@ -31,7 +31,7 @@ export default async function PaginaEmitirA3({
   const params = await searchParams;
 
   const [descuentos, tiendas] = await Promise.all([
-    descuentosVigentes(),
+    descuentosVigentes("A3"),
     listarTiendas(),
   ]);
 
@@ -122,9 +122,10 @@ export default async function PaginaEmitirA3({
         </Tarjeta>
 
         <p className="text-ink/45 m-0 px-1 text-[11.5px] leading-relaxed">
-          Los vales que el cliente genera solo quedan a nombre de la tienda, no
-          de una vendedora. Los que capturas aquí sí llevan tu nombre y
-          consumen un número de tu bloque.
+          Al registrarse, el cliente elige quién lo atendió y el vale queda a
+          nombre de esa asesora, pero se numera con la secuencia de la tienda y
+          no gasta bloque. Los que capturas aquí sí consumen un número del
+          tuyo.
         </p>
       </div>
     </div>

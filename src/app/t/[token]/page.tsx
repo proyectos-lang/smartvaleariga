@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Logotipo } from "@/components/marca/logotipo";
 import { Tarifas } from "@/components/vales/tarifas";
 import { tiendaPorToken } from "@/lib/datos/tiendas";
+import { asesorasDeTienda } from "@/lib/datos/usuarios";
 import { descuentosVigentes } from "@/lib/datos/configuracion";
 
 import { FormularioRegistro } from "./formulario";
@@ -32,7 +33,12 @@ export default async function PaginaAutorregistro({
 
   if (!tienda) notFound();
 
-  const descuentos = await descuentosVigentes();
+  // Del A3: es lo único que sale de este QR desde que dejó de preguntar por
+  // el vale del referidor. Enseñar la tarifa general prometería de más.
+  const [descuentos, asesoras] = await Promise.all([
+    descuentosVigentes("A3"),
+    asesorasDeTienda(tienda.id),
+  ]);
 
   return (
     <main className="bg-ink text-bone relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 py-12">
@@ -73,7 +79,12 @@ export default async function PaginaAutorregistro({
 
         {tienda.autorregistro ? (
           <>
-            <FormularioRegistro token={tienda.token} clavePais="502" />
+            <FormularioRegistro
+              token={tienda.token}
+              clavePais="502"
+              asesoras={asesoras}
+              tienda={tienda.nombre}
+            />
 
             <p className="text-bone/30 m-0 text-center text-[11px] leading-relaxed">
               Vigencia de {descuentos.diasVigencia} días desde hoy · No es

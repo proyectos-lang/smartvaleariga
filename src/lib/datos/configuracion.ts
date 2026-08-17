@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/supabase/server";
-import type { Configuracion } from "@/lib/supabase/types";
+import type { Configuracion, TipoVale } from "@/lib/supabase/types";
 
 /** Parámetros editables del panel de configuración de vales. */
 
@@ -31,23 +31,54 @@ export type Tarifas = {
 };
 
 /**
- * Tarifas vigentes.
+ * Tarifas vigentes, opcionalmente las del tipo.
  *
- * El descuento ya no depende del cliente sino de la pieza: la campaña es de
- * boca en boca y ofrece lo mismo a todos, así que un A1-VIP y un visitante
- * llevan el mismo vale. Lo que cambia es el material.
+ * El descuento no depende del cliente sino de la pieza: dentro de un mismo
+ * tipo, un A1-VIP y un A1 de 30 días llevan lo mismo. Lo que cambia es el
+ * material —y, desde que el A3 tiene tarifa propia, la puerta de entrada.
  *
- * Esto es solo lo que se le enseña a la vendedora antes de emitir; el valor
- * que queda dentro del vale lo congela Postgres en ese momento.
+ * Un tipo sin clave propia cae a la tarifa general, que es exactamente lo
+ * que hace `fn_tarifas_vigentes` en la base. Las dos lecturas tienen que
+ * coincidir: esta es la que se le enseña a la vendedora antes de emitir, y
+ * la de Postgres la que queda congelada dentro del vale.
+ *
+ * Sin `tipo` devuelve la tarifa general, para las pantallas que hablan de la
+ * campaña y no de una puerta concreta.
  */
-export async function descuentosVigentes(): Promise<Tarifas> {
+export async function descuentosVigentes(tipo?: TipoVale): Promise<Tarifas> {
+  return tarifasDe(await mapaConfiguracion(), tipo);
+}
+
+/**
+ * Las cuatro tarifas de una sola lectura.
+ *
+ * Para las pantallas que enseñan las puertas juntas: pedirlas una a una
+ * serían cuatro consultas a `configuracion` para la misma tabla.
+ */
+export async function descuentosPorTipo(): Promise<Record<TipoVale, Tarifas>> {
   const mapa = await mapaConfiguracion();
+  return {
+    A1: tarifasDe(mapa, "A1"),
+    A2: tarifasDe(mapa, "A2"),
+    A3: tarifasDe(mapa, "A3"),
+    A4: tarifasDe(mapa, "A4"),
+  };
+}
+
+function tarifasDe(mapa: Record<string, string>, tipo?: TipoVale): Tarifas {
   const leer = (clave: string, defecto: number) =>
     mapa[clave] === undefined ? defecto : Number(mapa[clave]);
 
+  // La clave del tipo manda; si no está, cae a la general. Es la misma
+  // cascada que `fn_tarifas_vigentes` en la base, y tiene que seguir siéndolo.
+  const porTipo = (clave: string, defecto: number) => {
+    const general = leer(clave, defecto);
+    return tipo ? leer(`${clave}_${tipo.toLowerCase()}`, general) : general;
+  };
+
   return {
-    oro: leer("descuento_oro", 20),
-    plata: leer("descuento_plata", 40),
+    oro: porTipo("descuento_oro", 20),
+    plata: porTipo("descuento_plata", 40),
     diasVigencia: leer("dias_vigencia_vale", 30),
   };
 }

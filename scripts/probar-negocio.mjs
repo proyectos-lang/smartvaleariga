@@ -205,6 +205,12 @@ async function probarEmision() {
     "A3 toma la tienda de la vendedora si no se indica",
     a3.tienda_id === creado.tiendaId,
   );
+  comprobar(
+    "A3 lleva su tarifa propia (15% oro / 35% plata), no la general",
+    Number(a3.descuento_oro_pct) === 15 &&
+      Number(a3.descuento_plata_pct) === 35,
+    `${a3.descuento_oro_pct}% oro · ${a3.descuento_plata_pct}% plata`,
+  );
 
   await debeFallar(
     "A1 sin segmento se rechaza",
@@ -378,20 +384,57 @@ async function probarAutorregistro() {
     p_nombre: `Visitante ${MARCA}`,
     p_telefono: "5218112399001",
     p_correo: null,
+    p_usuario_id: creado.usuarioId,
   });
   comprobar(
     "el código lleva el prefijo de la tienda",
     /^AR-A3-T\d{3,}-\d{5}$/.test(primero.codigo),
     primero.codigo,
   );
-  comprobar("el vale no tiene vendedora", primero.usuario_id === null);
+  comprobar(
+    "el vale queda acreditado a la asesora",
+    primero.usuario_id === creado.usuarioId,
+  );
+  comprobar(
+    "pero no gasta su bloque",
+    primero.rango_id === null,
+    `rango_id: ${primero.rango_id}`,
+  );
   comprobar("queda marcado como autorregistro", primero.autorregistro === true);
+  comprobar(
+    "hereda la tarifa del A3",
+    Number(primero.descuento_oro_pct) === 15 &&
+      Number(primero.descuento_plata_pct) === 35,
+    `${primero.descuento_oro_pct}% oro · ${primero.descuento_plata_pct}% plata`,
+  );
   comprobar("se emite sin correo", true);
+
+  await debeFallar(
+    "sin asesora se rechaza",
+    rpc("fn_autorregistro_a3", {
+      p_token: tienda.token,
+      p_nombre: `Sin asesora ${MARCA}`,
+      p_telefono: "5218112399004",
+    }),
+    "SV010",
+  );
+
+  await debeFallar(
+    "una asesora inexistente se rechaza",
+    rpc("fn_autorregistro_a3", {
+      p_token: tienda.token,
+      p_nombre: `Asesora mala ${MARCA}`,
+      p_telefono: "5218112399005",
+      p_usuario_id: 2147483000,
+    }),
+    "SV010",
+  );
 
   const repetido = await rpc("fn_autorregistro_a3", {
     p_token: tienda.token,
     p_nombre: `Visitante ${MARCA}`,
     p_telefono: "5218112399001",
+    p_usuario_id: creado.usuarioId,
   });
   comprobar(
     "volver a escanear devuelve el mismo vale, no uno nuevo",
@@ -403,6 +446,7 @@ async function probarAutorregistro() {
     p_token: tienda.token,
     p_nombre: `Otro visitante ${MARCA}`,
     p_telefono: "5218112399002",
+    p_usuario_id: creado.usuarioId,
   });
   comprobar(
     "otra persona sí obtiene su propio vale",
@@ -416,6 +460,7 @@ async function probarAutorregistro() {
       p_token: "token-que-no-existe-000",
       p_nombre: `X ${MARCA}`,
       p_telefono: "5218112399003",
+      p_usuario_id: creado.usuarioId,
     }),
     "SV007",
   );
@@ -572,6 +617,7 @@ async function probarAutorregistroA4(a1) {
     p_nombre: `Referido QR ${MARCA}`,
     p_telefono: "5218112399010",
     p_codigo_referidor: a1.codigo,
+    p_usuario_id: creado.usuarioId,
   });
   comprobar(
     "con código de referidor el autorregistro sale A4",
@@ -579,7 +625,16 @@ async function probarAutorregistroA4(a1) {
     vale.codigo,
   );
   comprobar("queda ligado al referidor", vale.vale_origen_id === a1.id);
-  comprobar("sigue sin vendedora", vale.usuario_id === null);
+  comprobar(
+    "también se acredita a la asesora",
+    vale.usuario_id === creado.usuarioId,
+  );
+  comprobar(
+    "el A4 conserva la tarifa general, no la del A3",
+    Number(vale.descuento_oro_pct) === 20 &&
+      Number(vale.descuento_plata_pct) === 40,
+    `${vale.descuento_oro_pct}% oro · ${vale.descuento_plata_pct}% plata`,
+  );
 
   await debeFallar(
     "un código de referidor inválido se rechaza también aquí",
@@ -590,6 +645,7 @@ async function probarAutorregistroA4(a1) {
       // V000 no lo puede generar nadie: `fn_prefijo_vendedora` rellena el id
       // a tres dígitos y los ids arrancan en 1.
       p_codigo_referidor: "AR-A1-V000-00000",
+      p_usuario_id: creado.usuarioId,
     }),
     "SV009",
   );
