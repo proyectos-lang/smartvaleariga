@@ -179,12 +179,13 @@ export function TarjetaVale({
           {/* Las dos tarifas juntas y partidas por la línea: enseñar solo una
               haría esperar ese porcentaje sobre toda la compra. */}
           <div className="flex items-center">
+            {/* Cada cifra del color de su material; el rótulo se queda gris. */}
             {(
               [
-                ["EN ORO", vale.descuentoOro],
-                ["EN PLATA", vale.descuentoPlata],
-              ] as [string, number][]
-            ).map(([etiqueta, pct], i) => (
+                ["EN ORO", vale.descuentoOro, PALETA.oro],
+                ["EN PLATA", vale.descuentoPlata, PALETA.plata],
+              ] as [string, number, string][]
+            ).map(([etiqueta, pct, tinte], i) => (
               <div key={etiqueta} className="flex items-center">
                 {i === 1 ? (
                   <div
@@ -195,7 +196,7 @@ export function TarjetaVale({
                 <span className="flex flex-col items-center">
                   <span
                     className="font-display text-[46px] leading-none"
-                    style={{ color: PALETA.oro }}
+                    style={{ color: tinte }}
                   >
                     {pct}%
                   </span>

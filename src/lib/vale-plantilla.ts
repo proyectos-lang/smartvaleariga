@@ -21,6 +21,12 @@ export const PALETA = {
   textura: "#1A1A1A",
   /** Dorado suave: destacados, iconos, código, bordes y títulos. */
   oro: "#E0C58A",
+  /**
+   * Plateado de la cifra en plata. Frío y algo más claro que el dorado, para
+   * que las dos cifras pesen igual y ninguna parezca la oferta principal. No
+   * se usa para texto: contra el gris de los rótulos se confundiría.
+   */
+  plata: "#CBD1D8",
   /** Gris claro del texto secundario. */
   gris: "#A0A0A0",
   /** Gris de las líneas divisorias. */

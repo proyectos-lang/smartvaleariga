@@ -195,14 +195,16 @@ function Descuentos({
   rotulo: number;
   separacion: number;
 }) {
-  const columnas: [string, number][] = [
-    ["EN ORO", oro],
-    ["EN PLATA", plata],
+  // Cada cifra del color de su material: la de oro dorada, la de plata
+  // plateada. El rótulo se queda gris en las dos.
+  const columnas: [string, number, string][] = [
+    ["EN ORO", oro, PALETA.oro],
+    ["EN PLATA", plata, PALETA.plata],
   ];
 
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      {columnas.map(([etiqueta, pct], i) => (
+      {columnas.map(([etiqueta, pct, tinte], i) => (
         <div key={etiqueta} style={{ display: "flex", alignItems: "center" }}>
           {i === 1 ? (
             <div
@@ -230,7 +232,7 @@ function Descuentos({
                 fontWeight: 600,
                 fontSize: cifra,
                 lineHeight: 1,
-                color: PALETA.oro,
+                color: tinte,
               }}
             >
               {pct}%
