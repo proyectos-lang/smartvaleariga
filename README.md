@@ -18,7 +18,7 @@ cp .env.example .env.local      # y llena los valores
 npm run db:bundle               # genera supabase/aplicar.sql
 # pega ese archivo en Supabase → SQL Editor → Run
 npm run usuarios:crear -- --nombre "Tu Nombre" --correo admin --rol admin
-npm run dev                     # http://localhost:3001
+npm run dev                     # http://localhost:3002
 ```
 
 Comprobaciones rápidas:
@@ -245,7 +245,7 @@ ARIGA opera en **Guatemala**. Eso fija dos cosas:
   En la base los montos son `numeric` sin unidad, así que esto solo afecta a
   cómo se presentan.
 
-La app corre en el **puerto 3001**. `NEXT_PUBLIC_SITE_URL` tiene que
+La app corre en el **puerto 3002**. `NEXT_PUBLIC_SITE_URL` tiene que
 coincidir con el puerto: de ahí sale la URL que se codifica en cada QR.
 
 ---

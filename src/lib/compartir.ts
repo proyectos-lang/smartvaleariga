@@ -5,7 +5,7 @@
  * navegador, y `NEXT_PUBLIC_SITE_URL` es pública por diseño.
  */
 
-const BASE_LOCAL = "http://localhost:3001";
+const BASE_LOCAL = "http://localhost:3002";
 
 /**
  * Base pública del sitio. En producción debe ser el dominio real.
