@@ -12,6 +12,15 @@ import {
   urlPublicaVale,
   urlTarjetaVale,
 } from "@/lib/compartir";
+import {
+  AVISO_LEGAL,
+  PALETA,
+  PASOS,
+  TITULO_PASOS,
+  type TrazoIcono,
+  leyendaVigencia,
+  notaEstatus,
+} from "@/lib/vale-plantilla";
 import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
@@ -34,7 +43,9 @@ export type DatosTarjeta = {
  *
  * Lo que se ve aquí es la vista en pantalla. La imagen que se descarga o se
  * comparte la dibuja el servidor en `/api/v/[token]/imagen`, con el mismo
- * diseño pero a 800×1200 y sin depender del navegador.
+ * diseño pero a 800×1200 y sin depender del navegador. Los colores, los
+ * textos y los iconos salen de `lib/vale-plantilla.ts` para que las dos no
+ * puedan separarse.
  */
 export function TarjetaVale({
   vale,
@@ -58,6 +69,7 @@ export function TarjetaVale({
   });
 
   const vigente = vale.estado === "activo";
+  const nota = notaEstatus(vale.portador);
 
   /**
    * La imagen la dibuja el servidor y aquí solo se descarga o se pasa a la
@@ -107,77 +119,163 @@ export function TarjetaVale({
     <div className="flex flex-col gap-4">
       {/* La tarjeta que ve el cliente */}
       <div
-        className="bg-ink text-bone rounded-panel relative overflow-hidden"
-        style={{ backgroundColor: "#0B0B0C" }}
+        className="rounded-panel relative overflow-hidden"
+        style={{ backgroundColor: PALETA.fondo }}
       >
-        <div className="ariga-hatch pointer-events-none absolute inset-0 opacity-[0.07]" />
-        <div className="border-gold/20 absolute -top-24 -right-24 size-64 rotate-45 border" />
+        <div className="vale-textura pointer-events-none absolute inset-0" />
 
-        <div className="relative flex flex-col items-center gap-5 px-6 py-8 sm:px-8">
-          <div className="flex flex-col items-center gap-[10px]">
-            <Image
-              src="/brand/ariga-logo.png"
-              alt="ARIGA Joyería"
-              width={72}
-              height={72}
-              className="rounded-full"
-              priority
-            />
-          </div>
+        {/* Trazos geométricos de las esquinas */}
+        <div
+          className="pointer-events-none absolute top-3 left-3 size-8 border-t border-l"
+          style={{ borderColor: PALETA.oro }}
+        />
+        <div
+          className="pointer-events-none absolute right-3 bottom-3 size-8 border-r border-b"
+          style={{ borderColor: PALETA.oro }}
+        />
 
-          <div className="bg-gold/30 h-px w-12" />
+        <div className="relative flex flex-col items-center px-6 py-8 sm:px-8">
+          <Image
+            src="/brand/ariga-logo.png"
+            alt="ARIGA Joyería"
+            width={72}
+            height={72}
+            className="rounded-full"
+            priority
+          />
+          <span
+            className="font-display mt-[6px] text-[27px] leading-none tracking-[0.08em]"
+            style={{ color: PALETA.oro }}
+          >
+            ARIGA
+          </span>
+          <span
+            className="mt-[7px] ml-[0.42em] text-[9px] tracking-[0.42em]"
+            style={{ color: PALETA.oro }}
+          >
+            JOYERÍA
+          </span>
 
-          {/* Las dos tarifas juntas: enseñar solo una haría esperar ese
-              porcentaje sobre toda la compra. */}
-          <div className="flex items-end justify-center gap-8">
-            {([
-              ["oro", vale.descuentoOro],
-              ["plata", vale.descuentoPlata],
-            ] as [string, number][]).map(([material, pct]) => (
-              <span key={material} className="flex flex-col items-center gap-1">
-                <span className="font-display text-gold-light text-[46px] leading-none">
-                  {pct}%
+          <div
+            className="mt-[14px] mb-4 h-px w-10 opacity-60"
+            style={{ backgroundColor: PALETA.oro }}
+          />
+
+          {/* Las dos tarifas juntas y partidas por la línea: enseñar solo una
+              haría esperar ese porcentaje sobre toda la compra. */}
+          <div className="flex items-center">
+            {(
+              [
+                ["EN ORO", vale.descuentoOro],
+                ["EN PLATA", vale.descuentoPlata],
+              ] as [string, number][]
+            ).map(([etiqueta, pct], i) => (
+              <div key={etiqueta} className="flex items-center">
+                {i === 1 ? (
+                  <div
+                    className="mx-5 h-[52px] w-px opacity-55"
+                    style={{ backgroundColor: PALETA.oro }}
+                  />
+                ) : null}
+                <span className="flex flex-col items-center">
+                  <span
+                    className="font-display text-[46px] leading-none"
+                    style={{ color: PALETA.oro }}
+                  >
+                    {pct}%
+                  </span>
+                  <span
+                    className="mt-[7px] ml-[0.22em] text-[9.5px] tracking-[0.22em]"
+                    style={{ color: PALETA.gris }}
+                  >
+                    {etiqueta}
+                  </span>
                 </span>
-                <span className="text-bone/50 text-[10px] tracking-[0.2em] uppercase">
-                  en {material}
-                </span>
-              </span>
+              </div>
             ))}
           </div>
 
           {/* El QR lleva un enlace, no el código: cualquier cámara lo abre */}
-          <div className="rounded-card bg-bone p-3">
+          <div
+            className="rounded-card mt-5 p-3"
+            style={{ backgroundColor: PALETA.blanco }}
+          >
             <QRCode
               value={url}
-              size={148}
+              size={140}
               level="H"
-              bgColor="#F6F3ED"
+              bgColor={PALETA.blanco}
               fgColor="#0B0B0C"
             />
           </div>
 
-          <div className="flex flex-col items-center gap-[6px]">
-            <span className="text-gold-light font-mono text-[17px] font-medium tracking-[0.14em]">
-              {vale.codigo}
-            </span>
-            <span className="text-bone/45 text-[11.5px]">
-              {vale.portador} · {ETIQUETA_TIPO[vale.tipo]}
-            </span>
-          </div>
+          <span
+            className="mt-[14px] font-mono text-[15px] font-medium tracking-[0.14em]"
+            style={{ color: PALETA.oro }}
+          >
+            {vale.codigo}
+          </span>
+          <span className="mt-[7px] text-[11px]" style={{ color: PALETA.gris }}>
+            {vale.portador} · {ETIQUETA_TIPO[vale.tipo]}
+          </span>
 
-          <div className="border-bone/10 flex w-full flex-col items-center gap-1 border-t pt-4">
-            <span className="text-bone/55 text-[11.5px]">
-              {vigente
-                ? `Vigente hasta el ${vale.vigencia}`
-                : vale.estado === "vencido"
-                  ? `Venció el ${vale.vigencia}`
-                  : "Vale anulado"}
-            </span>
-            <span className="text-bone/30 text-center text-[10px] leading-relaxed">
-              Preséntalo en cualquier sucursal ARIGA. No es canjeable por
-              efectivo.
-            </span>
-          </div>
+          <div
+            className="mt-4 mb-3 h-px w-full"
+            style={{ backgroundColor: PALETA.divisor }}
+          />
+
+          <span className="text-[11.5px]" style={{ color: PALETA.gris }}>
+            {leyendaVigencia(vale.estado, vale.vigencia)}
+          </span>
+          <span
+            className="mt-[6px] text-center text-[10px] leading-relaxed opacity-75"
+            style={{ color: PALETA.gris }}
+          >
+            {AVISO_LEGAL}
+          </span>
+
+          {/* Un vale vencido o anulado no invita a pasar por la tienda. */}
+          {vigente ? (
+            <div
+              className="mt-4 flex w-full flex-col rounded-[12px] px-4 py-3"
+              style={{
+                backgroundColor: PALETA.textura,
+                border: `1px solid ${PALETA.oro}40`,
+              }}
+            >
+              <span
+                className="mb-[10px] ml-[0.24em] text-center text-[9px] font-semibold tracking-[0.24em]"
+                style={{ color: PALETA.oro }}
+              >
+                {TITULO_PASOS}
+              </span>
+              <ol className="m-0 flex list-none flex-col gap-[7px] p-0">
+                {PASOS.map((paso) => (
+                  <li key={paso.numero} className="flex items-center">
+                    <Icono trazos={paso.trazos} />
+                    <span
+                      className="ml-[7px] w-[13px] text-[11px]"
+                      style={{ color: PALETA.oro }}
+                    >
+                      {paso.numero}.
+                    </span>
+                    <span className="text-[11px]" style={{ color: PALETA.gris }}>
+                      {paso.texto}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
+
+          <span
+            className="mt-[14px] text-center text-[9.5px] leading-relaxed opacity-70"
+            style={{ color: PALETA.gris }}
+          >
+            {nota.antes}
+            <span style={{ color: PALETA.oro }}>{nota.estatus}</span>
+            {nota.despues}
+          </span>
         </div>
       </div>
 
@@ -229,5 +327,34 @@ export function TarjetaVale({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Icono de un paso. Dibuja los mismos trazos que el PNG del servidor en vez de
+ * importar el componente de lucide: así no hay dos iconos parecidos que se
+ * puedan desincronizar.
+ */
+function Icono({ trazos }: { trazos: TrazoIcono[] }) {
+  return (
+    <svg
+      width={15}
+      height={15}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={PALETA.oro}
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {trazos.map(([etiqueta, atributos], i) =>
+        etiqueta === "rect" ? (
+          <rect key={i} {...atributos} />
+        ) : (
+          <path key={i} {...atributos} />
+        ),
+      )}
+    </svg>
   );
 }

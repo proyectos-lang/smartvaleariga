@@ -5,7 +5,6 @@ import { TarjetaVale } from "@/components/vales/tarjeta-vale";
 import { valePorToken } from "@/lib/datos/vales";
 import { urlImagenVale, urlPublicaVale } from "@/lib/compartir";
 import { fecha } from "@/lib/format";
-import { ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 /**
  * Cara pública del vale: lo que abre quien recibe el enlace por WhatsApp.
@@ -83,30 +82,27 @@ export default async function PaginaPublicaVale({
           }}
         />
 
-        <div className="border-gold/15 bg-ink-soft rounded-card flex flex-col gap-3 border p-5">
-          <span className="text-gold-light/70 text-[9px] font-medium tracking-[0.24em]">
-            CÓMO USARLO
-          </span>
-          {vigente ? (
-            <ol className="text-bone/55 m-0 flex list-none flex-col gap-2 p-0 text-[12.5px] leading-relaxed">
-              <li>1. Visita cualquier sucursal ARIGA.</li>
-              <li>2. Muestra este código en caja antes de pagar.</li>
-              <li>3. Cada porcentaje se aplica sobre las piezas de su material.</li>
-            </ol>
-          ) : (
+        {/*
+          Los pasos y el aviso legal viajan dentro de la tarjeta desde que
+          también salen impresos en la imagen que se comparte. Aquí solo queda
+          lo que la tarjeta no puede decir: por qué un vale muerto no sirve, y
+          que un A2 está hecho para pasarlo.
+        */}
+        {vigente ? null : (
+          <div className="border-gold/15 bg-ink-soft rounded-card border p-5">
             <p className="text-bone/55 m-0 text-[12.5px] leading-relaxed">
               {vale.estado === "vencido"
                 ? `Este vale venció el ${fecha(vale.fecha_vencimiento)} y ya no puede usarse. Contacta a tu asesora de ARIGA para obtener uno nuevo.`
                 : "Este vale fue anulado y ya no puede usarse. Contacta a tu asesora de ARIGA."}
             </p>
-          )}
-          <p className="text-bone/30 m-0 text-[11px] leading-relaxed">
-            {ETIQUETA_TIPO[vale.tipo]}
-            {vale.tipo === "A2"
-              ? " · Puedes compartirlo con familiares, amigos y compañeros de trabajo."
-              : ""}
+          </div>
+        )}
+
+        {vigente && vale.tipo === "A2" ? (
+          <p className="text-bone/30 m-0 px-2 text-center text-[11px] leading-relaxed">
+            Puedes compartirlo con familiares, amigos y compañeros de trabajo.
           </p>
-        </div>
+        ) : null}
       </div>
     </main>
   );

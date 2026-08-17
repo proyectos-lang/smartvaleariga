@@ -120,6 +120,22 @@
     );
   }
 
+  /*
+   * Textura del vale: líneas diagonales finas sobre el negro mate.
+   *
+   * Es la misma trama que dibuja el PNG del servidor —ver `Textura` en
+   * lib/vale-imagen.tsx—, donde va como patrón SVG porque Satori no aplica
+   * degradados repetidos. Los 9.9px son el paso perpendicular de una retícula
+   * de 14px a 45°, y el 1.4px, el grosor del trazo.
+   */
+  .vale-textura {
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8.5px,
+      #1a1a1a 8.5px 9.9px
+    );
+  }
+
   /* Halo radial cálido detrás del logotipo */
   .ariga-glow {
     background: radial-gradient(120% 90% at 20% 10%, #1a1712 0%, #0b0b0c 62%);

@@ -13,6 +13,7 @@
     "db:bundle": "node scripts/empaquetar-migraciones.mjs",
     "usuarios:crear": "node --env-file=.env.local scripts/crear-usuario.mjs",
     "marca:generar": "node scripts/generar-marca.mjs",
+    "fuentes:generar": "node scripts/generar-fuentes.mjs",
     "test:negocio": "node --env-file=.env.local scripts/probar-negocio.mjs",
     "db:link": "supabase link",
     "db:new": "supabase migration new",
