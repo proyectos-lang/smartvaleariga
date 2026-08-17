@@ -329,7 +329,7 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       <Textura opacidad={0.85} />
       <Esquinas margen={22} lado={54} />
       {/* Un vale muerto no invita a compartirse. */}
-      {vigente ? <Sello ancho={124} margen={34} /> : null}
+      {vigente ? <Sello ancho={172} margen={30} /> : null}
 
       <Marca logo={112} marca={44} joyeria={14} />
 
@@ -509,7 +509,7 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
       <Esquinas margen={20} lado={48} />
       {/* Más pequeño que en la vertical: aquí compite con el QR, y WhatsApp
           enseña esta imagen a menos de la mitad de ancho. */}
-      {vale.estado === "activo" ? <Sello ancho={92} margen={30} /> : null}
+      {vale.estado === "activo" ? <Sello ancho={124} margen={26} /> : null}
 
       <div
         style={{

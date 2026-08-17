@@ -145,7 +145,7 @@ export function TarjetaVale({
             alt="Compártelo y haz feliz a alguien más"
             width={129}
             height={125}
-            className="pointer-events-none absolute top-4 right-4 h-auto w-[60px]"
+            className="pointer-events-none absolute top-3 right-3 h-auto w-[84px]"
           />
         ) : null}
 
