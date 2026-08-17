@@ -150,29 +150,20 @@ export function TarjetaVale({
         ) : null}
 
         <div className="relative flex flex-col items-center px-6 py-8 sm:px-8">
+          {/* Sin el rótulo «ARIGA / JOYERÍA» debajo: el logotipo ya lleva el
+              nombre dentro y se leía dos veces. Va más grande porque ahora
+              carga solo con la identidad. */}
           <Image
             src="/brand/ariga-logo.png"
             alt="ARIGA Joyería"
-            width={72}
-            height={72}
+            width={104}
+            height={104}
             className="rounded-full"
             priority
           />
-          <span
-            className="font-display mt-[6px] text-[27px] leading-none tracking-[0.08em]"
-            style={{ color: PALETA.oro }}
-          >
-            ARIGA
-          </span>
-          <span
-            className="mt-[7px] ml-[0.42em] text-[9px] tracking-[0.42em]"
-            style={{ color: PALETA.oro }}
-          >
-            JOYERÍA
-          </span>
 
           <div
-            className="mt-[14px] mb-4 h-px w-10 opacity-60"
+            className="mt-4 mb-4 h-px w-10 opacity-60"
             style={{ backgroundColor: PALETA.oro }}
           />
 

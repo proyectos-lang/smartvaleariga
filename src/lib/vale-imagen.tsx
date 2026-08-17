@@ -144,39 +144,18 @@ function Esquinas({ margen, lado }: { margen: number; lado: number }) {
   );
 }
 
-/** Logotipo circular con "ARIGA / JOYERÍA" debajo. */
-function Marca({ logo, marca, joyeria }: { logo: number; marca: number; joyeria: number }) {
+/**
+ * Logotipo circular.
+ *
+ * Sin el rótulo «ARIGA / JOYERÍA» debajo: el propio logotipo ya lleva el
+ * nombre dentro, así que se leía dos veces seguidas. Va más grande que antes
+ * porque ahora carga solo con la identidad.
+ */
+function Marca({ logo }: { logo: number }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div style={{ display: "flex" }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={LOGO_DATA_URL} width={logo} height={logo} alt="" />
-      <span
-        style={{
-          fontFamily: SERIF,
-          fontWeight: 600,
-          fontSize: marca,
-          lineHeight: 1,
-          letterSpacing: marca * 0.08,
-          color: PALETA.oro,
-          marginTop: logo * 0.09,
-        }}
-      >
-        ARIGA
-      </span>
-      <span
-        style={{
-          fontFamily: SANS,
-          fontSize: joyeria,
-          letterSpacing: joyeria * 0.42,
-          color: PALETA.oro,
-          // El interletraje empuja el texto a la derecha; se compensa para
-          // que quede ópticamente centrado bajo ARIGA.
-          marginLeft: joyeria * 0.42,
-          marginTop: joyeria * 0.5,
-        }}
-      >
-        JOYERÍA
-      </span>
     </div>
   );
 }
@@ -333,7 +312,7 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
       {/* Un vale muerto no invita a compartirse. */}
       {vigente ? <Sello ancho={172} margen={30} /> : null}
 
-      <Marca logo={112} marca={44} joyeria={14} />
+      <Marca logo={168} />
 
       <div
         style={{
@@ -342,7 +321,7 @@ export function tarjetaVertical(vale: DatosImagenVale): ReactElement {
           height: 1,
           backgroundColor: PALETA.oro,
           opacity: 0.6,
-          margin: "22px 0 24px",
+          margin: "26px 0 26px",
         }}
       />
 
@@ -529,7 +508,7 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
             alignItems: "flex-start",
           }}
         >
-          <Marca logo={104} marca={40} joyeria={13} />
+          <Marca logo={148} />
 
           <div
             style={{
@@ -538,7 +517,7 @@ export function tarjetaApaisada(vale: DatosImagenVale): ReactElement {
               height: 1,
               backgroundColor: PALETA.oro,
               opacity: 0.6,
-              margin: "20px 0 20px",
+              margin: "22px 0 22px",
             }}
           />
 

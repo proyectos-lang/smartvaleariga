@@ -36,8 +36,8 @@ const FUENTES = [
     constante: "SERIF_600",
     familia: "Cormorant Garamond",
     consulta: "Cormorant+Garamond:wght@600",
-    texto: "ARIGA0123456789%",
-    para: 'el logotipo textual y los porcentajes',
+    texto: "0123456789%",
+    para: "los porcentajes",
   },
   {
     constante: "MONO_500",
