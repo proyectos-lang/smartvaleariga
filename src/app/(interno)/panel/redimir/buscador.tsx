@@ -32,7 +32,12 @@ export function BuscadorVale() {
     e.preventDefault();
     const codigo = extraerCodigo(texto);
     if (!codigo) {
-      setError("Ese código no tiene el formato de un vale (AR-A1-000045).");
+      // El ejemplo era solo el formato del bloque, que ya es el menos
+      // frecuente: casi todos los vales llevan prefijo de vendedora o de
+      // tienda. Enseñar los dos evita que parezca que el suyo está mal.
+      setError(
+        "Ese código no tiene el formato de un vale. Debe ser como AR-A4-V002-00005 o AR-A2-000125.",
+      );
       return;
     }
     setError(null);
@@ -74,7 +79,7 @@ export function BuscadorVale() {
               setTexto(e.target.value.toUpperCase());
               setError(null);
             }}
-            placeholder="AR-A1-000045"
+            placeholder="AR-A4-V002-00005"
             autoCapitalize="characters"
             autoComplete="off"
             spellCheck={false}

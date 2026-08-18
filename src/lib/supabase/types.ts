@@ -597,7 +597,14 @@ export type Database = {
 
 /* ── Alias de conveniencia ──────────────────────────────────────────────── */
 
-export type TipoVale = "A1" | "A2" | "A3" | "A4";
+/**
+ * Las puertas de entrada, en orden. Es la lista, no el tipo, la que deben
+ * usar quienes recorran los tipos o compongan patrones: así una puerta
+ * nueva no deja atrás un sitio escrito a mano.
+ */
+export const TIPOS_VALE = ["A1", "A2", "A3", "A4"] as const;
+
+export type TipoVale = (typeof TIPOS_VALE)[number];
 export type SegmentoA1 = "A1-30" | "A1-60" | "A1-90" | "A1-VIP";
 export type RolUsuario = "admin" | "vendedora";
 

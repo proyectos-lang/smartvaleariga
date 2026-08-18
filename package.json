@@ -15,6 +15,7 @@
     "marca:generar": "node scripts/generar-marca.mjs",
     "fuentes:generar": "node scripts/generar-fuentes.mjs",
     "test:negocio": "node --env-file=.env.local scripts/probar-negocio.mjs",
+    "test:codigo": "node scripts/probar-codigo.mjs",
     "db:link": "supabase link",
     "db:new": "supabase migration new",
     "db:push": "supabase db push",

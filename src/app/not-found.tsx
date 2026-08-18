@@ -27,7 +27,7 @@ export default function NoEncontrado() {
         <p className="text-bone/50 m-0 max-w-sm text-[13px] leading-relaxed">
           Si llegaste desde un vale, revisa que el enlace esté completo. Los
           códigos tienen la forma{" "}
-          <span className="text-gold-light font-mono">AR-A1-000045</span>.
+          <span className="text-gold-light font-mono">AR-A4-V002-00005</span>.
         </p>
       </div>
 

@@ -1,3 +1,5 @@
+import { TIPOS_VALE } from "@/lib/supabase/types";
+
 /**
  * Lectura del código de un vale.
  *
@@ -12,8 +14,15 @@
  *   AR-A2-000125        del bloque de la vendedora (A2 y A3 repartidos)
  *   AR-A1-V012-00045    secuencia propia de la vendedora, sin techo
  *   AR-A3-T003-00012    secuencia propia de la tienda (autorregistro)
+ *
+ * El tramo del tipo se arma desde `TIPOS_VALE` en vez de escribirse a mano.
+ * Estaba fijado a `A[123]` y el A4 nació después: ningún vale de esa puerta
+ * se podía redimir tecleando su código, que es justo lo que hace la cajera
+ * cuando la cámara no coopera.
  */
-const PATRON = /AR-A[123]-(?:[VT]\d{2,5}-)?\d{5,6}/i;
+const TIPO = `A[1-${TIPOS_VALE.length}]`;
+
+const PATRON = new RegExp(`AR-${TIPO}-(?:[VT]\\d{2,5}-)?\\d{5,6}`, "i");
 
 /** Formato canónico: `AR-A1-000045`. */
 export function normalizarCodigo(valor: string) {
@@ -35,10 +44,12 @@ export function extraerCodigo(texto: string): string | null {
   // Tolera que se dicte sin guiones: "ara1000045" o "ara1v01200045".
   const compacto = limpio.replace(/[\s-]/g, "").toUpperCase();
 
-  const conPrefijo = /^AR(A[123])([VT]\d{2,5})(\d{5})$/.exec(compacto);
+  const conPrefijo = new RegExp(
+    `^AR(${TIPO})([VT]\\d{2,5})(\\d{5})$`,
+  ).exec(compacto);
   if (conPrefijo) return `AR-${conPrefijo[1]}-${conPrefijo[2]}-${conPrefijo[3]}`;
 
-  const simple = /^AR(A[123])(\d{6})$/.exec(compacto);
+  const simple = new RegExp(`^AR(${TIPO})(\\d{6})$`).exec(compacto);
   if (simple) return `AR-${simple[1]}-${simple[2]}`;
 
   return null;
