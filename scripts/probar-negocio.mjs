@@ -286,11 +286,21 @@ async function probarRedencion(vale) {
       p_telefono: telefono,
       p_correo: null,
       p_monto: monto,
-      p_ticket: `T-${telefono.slice(-4)}`,
+      // Sin ticket ni nota: es lo que manda la caja desde que se quitaron
+      // esos campos del formulario.
       p_monto_oro: oro,
       p_monto_plata: plata,
     });
   }
+
+  const [primera] = await rest(
+    `redenciones?select=ticket,nota&vale_id=eq.${vale.id}&limit=1`,
+  );
+  comprobar(
+    "una compra sin ticket se registra, y queda nulo y no vacío",
+    primera.ticket === null && primera.nota === null,
+    `ticket ${JSON.stringify(primera.ticket)}, nota ${JSON.stringify(primera.nota)}`,
+  );
 
   const [validado] = await rpc("fn_validar_vale", { p_codigo: vale.codigo });
   comprobar(

@@ -134,11 +134,29 @@ export async function listarRedenciones({
   if (tiendaId) consulta = consulta.eq("tienda_id", tiendaId);
 
   if (busqueda?.trim()) {
-    const t = busqueda.trim().replace(/[%,]/g, "");
-    // Antes solo por ticket; desde que la caja no lo captura, eso dejaba
-    // sin buscar todo lo nuevo. El comprador siempre está.
+    const t = busqueda.trim().replace(/[%,()]/g, "");
+
+    /*
+     * Antes se buscaba solo por número de ticket; desde que la caja dejó de
+     * capturarlo, eso dejaba sin poder encontrar nada nuevo.
+     *
+     * El comprador vive en `contactos`, y PostgREST no admite mezclar en un
+     * mismo `or` columnas propias con las de una tabla incrustada: devuelve
+     * 500. Así que primero se resuelven los contactos que casan y después se
+     * filtra por su id, que sí es columna de `redenciones`.
+     */
+    const { data: contactos } = await db()
+      .from("contactos")
+      .select("id")
+      .or(`nombre.ilike.%${t}%,telefono.ilike.%${t}%`)
+      .limit(500);
+
+    const ids = (contactos ?? []).map((c) => c.id);
+
     consulta = consulta.or(
-      `ticket.ilike.%${t}%,contactos.nombre.ilike.%${t}%,contactos.telefono.ilike.%${t}%`,
+      ids.length
+        ? `ticket.ilike.%${t}%,contacto_id.in.(${ids.join(",")})`
+        : `ticket.ilike.%${t}%`,
     );
   }
 
