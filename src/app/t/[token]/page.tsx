@@ -87,8 +87,10 @@ export default async function PaginaAutorregistro({
             />
 
             <p className="text-bone/30 m-0 text-center text-[11px] leading-relaxed">
-              Vigencia de {descuentos.diasVigencia} días desde hoy · No es
-              canjeable por efectivo
+              {descuentos.vigenciaHastaTexto
+                ? `Válido hasta el ${descuentos.vigenciaHastaTexto}`
+                : `Vigencia de ${descuentos.diasVigencia} días desde hoy`}{" "}
+              · No es canjeable por efectivo
             </p>
           </>
         ) : null}

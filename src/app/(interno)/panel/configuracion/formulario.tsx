@@ -63,6 +63,43 @@ function CampoNumero({
   );
 }
 
+/**
+ * Día de cierre de una campaña. Se admite vacío a propósito: borrarlo
+ * devuelve ese tipo de vale a la ventana rodante de días.
+ */
+function CampoFecha({
+  clave,
+  etiqueta,
+  ayuda,
+  valor,
+  error,
+}: {
+  clave: string;
+  etiqueta: string;
+  ayuda?: string;
+  valor: string;
+  error?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-[7px]">
+      <Rotulo>{etiqueta}</Rotulo>
+      <input
+        name={clave}
+        type="date"
+        defaultValue={valor}
+        className={`border-ink/14 bg-paper text-ink rounded-field w-full border px-[14px] py-[12px] text-sm transition-[border-color,box-shadow] duration-150 outline-none focus:border-gold focus:shadow-[0_0_0_3px_rgba(198,161,91,0.16)] ${
+          error ? "border-clay" : ""
+        }`}
+      />
+      {error ? (
+        <span className="text-clay text-[11px]">{error}</span>
+      ) : ayuda ? (
+        <span className="text-ink/40 text-[11px] leading-relaxed">{ayuda}</span>
+      ) : null}
+    </label>
+  );
+}
+
 export function FormularioConfiguracion({
   valores,
 }: {
@@ -134,6 +171,14 @@ export function FormularioConfiguracion({
               error={err("descuento_plata_a3")}
             />
           </div>
+
+          <CampoFecha
+            clave="vigencia_hasta_a3"
+            etiqueta="ÚLTIMO DÍA DE LA CAMPAÑA A3"
+            ayuda="Todos los A3 vencen ese día, se emitan cuando se emitan; no cuentan los días de vigencia general. Déjalo vacío para volver a la ventana rodante."
+            valor={v("vigencia_hasta_a3", "")}
+            error={err("vigencia_hasta_a3")}
+          />
         </div>
       </section>
 
@@ -146,7 +191,7 @@ export function FormularioConfiguracion({
           <CampoNumero
             clave="dias_vigencia_vale"
             etiqueta="VIGENCIA DEL VALE"
-            ayuda="Contados desde la emisión."
+            ayuda="Contados desde la emisión. No aplica a los tipos con día de cierre propio."
             valor={v("dias_vigencia_vale", "30")}
             sufijo="días"
             min={1}

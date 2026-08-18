@@ -1,6 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/supabase/server";
+import { fecha } from "@/lib/format";
 import type { Configuracion, TipoVale } from "@/lib/supabase/types";
 
 /** Parámetros editables del panel de configuración de vales. */
@@ -28,6 +29,14 @@ export type Tarifas = {
   /** % sobre las piezas de plata. */
   plata: number;
   diasVigencia: number;
+  /**
+   * Día de cierre de la campaña, si el tipo tiene uno. Con fecha de corte
+   * la ventana de días no se usa: el vale muere ese día lo emita quien lo
+   * emita. Nulo = ventana rodante de `diasVigencia`.
+   */
+  vigenciaHasta: string | null;
+  /** Ya formateada para enseñarla: "31 oct 2026". */
+  vigenciaHastaTexto: string | null;
 };
 
 /**
@@ -76,9 +85,19 @@ function tarifasDe(mapa: Record<string, string>, tipo?: TipoVale): Tarifas {
     return tipo ? leer(`${clave}_${tipo.toLowerCase()}`, general) : general;
   };
 
+  // Misma cascada para la fecha de corte: la del tipo, si no la general.
+  const hasta =
+    (tipo ? mapa[`vigencia_hasta_${tipo.toLowerCase()}`] : undefined) ??
+    mapa["vigencia_hasta"];
+  const dia = hasta?.trim() ? hasta.trim() : null;
+
   return {
     oro: porTipo("descuento_oro", 20),
     plata: porTipo("descuento_plata", 40),
     diasVigencia: leer("dias_vigencia_vale", 30),
+    vigenciaHasta: dia,
+    // Se lee como mediodía para que el formateo a hora de Guatemala no
+    // pueda cruzar a la víspera: "2026-10-31" a secas es medianoche UTC.
+    vigenciaHastaTexto: dia ? fecha(`${dia}T12:00:00Z`) : null,
   };
 }

@@ -140,7 +140,11 @@ export default async function PaginaEmitir() {
                   className="text-ink/40"
                 />
                 <span className="text-ink/40 text-[11px]">
-                  {tarifas[tipo].diasVigencia} días
+                  {/* Con fecha de corte la ventana de días no aplica: el
+                      vale muere ese día, se emita cuando se emita. */}
+                  {tarifas[tipo].vigenciaHastaTexto
+                    ? `hasta ${tarifas[tipo].vigenciaHastaTexto}`
+                    : `${tarifas[tipo].diasVigencia} días`}
                 </span>
               </div>
             </>

@@ -19,6 +19,15 @@ export type EstadoConfig = {
   campos?: Record<string, string>;
 } | null;
 
+/**
+ * Claves de fecha. Se aceptan vacías: borrar la fecha devuelve ese tipo a
+ * la ventana rodante de días, que es como se apaga una campaña sin tocar
+ * código.
+ */
+const FECHAS: Record<string, string> = {
+  vigencia_hasta_a3: "Último día de los vales A3",
+};
+
 /** Límites por clave. Evita guardar un 900% de descuento por un dedazo. */
 const LIMITES: Record<string, { min: number; max: number; etiqueta: string }> = {
   descuento_oro: { min: 0, max: 100, etiqueta: "Descuento en oro" },
@@ -39,6 +48,31 @@ export async function guardarConfiguracion(
 
   const campos: Record<string, string> = {};
   const cambios: { clave: string; valor: string }[] = [];
+
+  for (const [clave, etiqueta] of Object.entries(FECHAS)) {
+    const crudo = formData.get(clave);
+    if (crudo === null) continue;
+
+    const texto = String(crudo).trim();
+
+    // Vacía es válida y significa "sin fecha de corte".
+    if (texto !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+      campos[clave] = `${etiqueta}: usa el formato AAAA-MM-DD.`;
+      continue;
+    }
+
+    // `new Date` acepta 2026-02-31 y lo corre a marzo. Se comprueba que el
+    // día siga siendo el que se escribió.
+    if (texto !== "") {
+      const d = new Date(`${texto}T12:00:00Z`);
+      if (Number.isNaN(d.getTime()) || !d.toISOString().startsWith(texto)) {
+        campos[clave] = `${etiqueta}: esa fecha no existe.`;
+        continue;
+      }
+    }
+
+    cambios.push({ clave, valor: texto });
+  }
 
   for (const [clave, limite] of Object.entries(LIMITES)) {
     const crudo = formData.get(clave);

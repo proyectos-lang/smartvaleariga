@@ -651,6 +651,77 @@ async function probarAutorregistroA4(a1) {
   );
 }
 
+async function probarCampanaCerrada() {
+  console.log("\nCampaña con fecha de corte");
+
+  const [antes] = await rest(
+    "configuracion?select=valor&clave=eq.vigencia_hasta_a3",
+  );
+
+  const poner = (valor) =>
+    rest("configuracion?clave=eq.vigencia_hasta_a3", {
+      method: "PATCH",
+      body: JSON.stringify({ valor }),
+    });
+
+  try {
+    // Una campaña que cerró ayer: emitir daría un vale nacido muerto.
+    await poner("2020-01-31");
+    await debeFallar(
+      "con la campaña cerrada no se emite un vale ya vencido",
+      rpc("fn_emitir_vale", {
+        p_usuario_id: creado.usuarioId,
+        p_tipo: "A3",
+        p_nombre: `Tarde ${MARCA}`,
+        p_telefono: "5218112345001",
+      }),
+      "SV011",
+    );
+
+    // Y no debe haberse quemado un correlativo del bloque por el intento.
+    const [cupoTras] = await rpc("fn_resumen_rango", {
+      p_usuario_id: creado.usuarioId,
+    });
+    comprobar(
+      "el intento fallido no consume correlativo",
+      typeof cupoTras.restantes === "number",
+      `quedan ${cupoTras.restantes}`,
+    );
+
+    // Sin fecha, el A3 vuelve a la ventana rodante de días.
+    await poner("");
+    const suelto = await rpc("fn_emitir_vale", {
+      p_usuario_id: creado.usuarioId,
+      p_tipo: "A3",
+      p_nombre: `Sin corte ${MARCA}`,
+      p_telefono: "5218112345002",
+    });
+    comprobar(
+      "sin fecha de corte el A3 vuelve a los 30 días",
+      Math.round(
+        (new Date(suelto.fecha_vencimiento) - new Date(suelto.fecha_emision)) /
+          86400000,
+      ) === 30,
+    );
+
+    await debeFallar(
+      "una fecha con formato inválido se rechaza",
+      poner("31/10/2026").then(() =>
+        rpc("fn_emitir_vale", {
+          p_usuario_id: creado.usuarioId,
+          p_tipo: "A3",
+          p_nombre: `Formato ${MARCA}`,
+          p_telefono: "5218112345003",
+        }),
+      ),
+      "SV011",
+    );
+  } finally {
+    // Se deja la configuración exactamente como estaba.
+    await poner(antes?.valor ?? "");
+  }
+}
+
 async function probarAgotamiento() {
   console.log("\nAgotamiento del rango");
 
@@ -763,6 +834,7 @@ try {
   await probarAutorregistro();
   await probarA4Referidos(a2);
   await probarAutorregistroA4(a1);
+  await probarCampanaCerrada();
   await probarAgotamiento();
   await probarConcurrencia();
 } catch (e) {
