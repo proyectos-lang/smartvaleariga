@@ -39,6 +39,11 @@ const partes = [
   "-- GENERADO AUTOMÁTICAMENTE por scripts/empaquetar-migraciones.mjs.",
   "-- No editar a mano: los cambios van en supabase/migrations/.",
   "--",
+  "-- SOLO PARA UNA BASE VACÍA. Contiene los `create type` y `create table`",
+  "-- originales, que sobre una base ya montada fallan con 42710 y hacen",
+  "-- rollback de todo el bloque: parece que no pasó nada. Para actualizar",
+  "-- una base existente, aplica el archivo suelto de supabase/migrations/.",
+  "--",
   "-- Cómo aplicarlo: Supabase → SQL Editor → pegar todo → Run.",
   "--",
   "-- Va partido en varias transacciones y no en una sola: las migraciones",
@@ -93,4 +98,9 @@ console.log(
   `  ${archivos.length} migraciones, ${lineas} líneas, ${transacciones} transacciones\n`,
 );
 for (const a of archivos) console.log(`  · ${a}`);
-console.log("\nPégalo completo en Supabase → SQL Editor → Run.\n");
+console.log(
+  "\nSOLO para una base vacía: sobre una ya montada falla en el primer" +
+    "\n`create type` y revierte el bloque entero, así que parece que no pasó" +
+    "\nnada. Para actualizar una base existente, aplica el archivo suelto de" +
+    "\nsupabase/migrations/.\n",
+);
