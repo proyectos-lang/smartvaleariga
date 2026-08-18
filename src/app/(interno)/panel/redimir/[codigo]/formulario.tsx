@@ -22,9 +22,11 @@ function numero(valor: string) {
 }
 
 /**
- * Captura de la compra. Todo lo que pide la especificación es obligatorio:
- * sin comprador identificado y sin ticket no hay trazabilidad, que es la
- * razón de ser del módulo.
+ * Captura de la compra.
+ *
+ * Se pide lo imprescindible: quién compra, dónde, cuánto y de qué material.
+ * El número de factura salió de aquí porque frenaba la fila para un dato
+ * que la caja ya tiene en su propio sistema.
  *
  * Desde que el descuento es por material, la caja tiene que separar cuánto
  * de la compra fue oro y cuánto plata: es lo que decide el descuento y lo
@@ -239,16 +241,6 @@ export function FormularioRedencion({
           </div>
         </div>
 
-        <Campo
-          etiqueta="NÚMERO DE TICKET O FACTURA"
-          name="ticket"
-          placeholder="F-00123"
-          autoComplete="off"
-          error={campo("ticket")}
-          required
-        />
-
-        <Campo etiqueta="NOTA (OPCIONAL)" name="nota" placeholder="Observaciones" />
       </div>
 
       {estado?.error && !estado.campos ? (

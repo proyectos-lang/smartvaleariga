@@ -57,7 +57,7 @@ export default async function PaginaRedenciones({
           type="search"
           name="q"
           defaultValue={busqueda}
-          placeholder="Buscar por número de ticket…"
+          placeholder="Buscar por comprador, teléfono o ticket…"
           className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold min-w-0 flex-1 border px-4 py-[11px] text-[13px] transition-colors outline-none sm:max-w-sm"
         />
         <button
@@ -138,7 +138,8 @@ export default async function PaginaRedenciones({
                     </span>
                     <span className="text-ink/42 truncate text-[11px]">
                       {r.referido_por ? `vía ${r.referido_por} · ` : ""}
-                      {r.tienda} · ticket {r.ticket} ·{" "}
+                      {r.tienda}
+                      {r.ticket ? ` · ticket ${r.ticket}` : ""} ·{" "}
                       {fechaHora(r.fecha_creacion)}
                     </span>
                   </span>

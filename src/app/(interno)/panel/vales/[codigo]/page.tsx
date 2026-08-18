@@ -206,7 +206,8 @@ export default async function PaginaVale({
                       </span>
                       <span className="text-ink/42 truncate text-[11px]">
                         {r.referido_por ? `vía ${r.referido_por} · ` : ""}
-                        {r.tienda} · ticket {r.ticket} ·{" "}
+                        {r.tienda}
+                        {r.ticket ? ` · ticket ${r.ticket}` : ""} ·{" "}
                         {fechaHora(r.fecha_creacion)}
                       </span>
                     </span>

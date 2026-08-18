@@ -475,7 +475,8 @@ export type Database = {
           /** Opcional: en caja frena la fila y mucha gente no lo da. */
           p_correo?: string | null;
           p_monto: number;
-          p_ticket: string;
+          /** Factura del punto de venta. La caja dejó de pedirla. */
+          p_ticket?: string | null;
           p_descuento?: number | null;
           p_nota?: string | null;
           p_referido_por?: string | null;

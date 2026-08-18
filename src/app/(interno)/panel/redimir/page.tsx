@@ -48,7 +48,7 @@ export default async function PaginaRedimir() {
             {[
               "Escanea el QR del cliente o escribe el código del vale.",
               "Revisa que esté vigente y qué descuento le corresponde.",
-              "Captura los datos del comprador, el monto y el número de ticket.",
+              "Captura los datos del comprador y el monto de la compra.",
             ].map((paso, i) => (
               <li key={i} className="flex gap-3">
                 <span className="bg-gold/16 text-gold-dark mt-[1px] flex size-[20px] shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">

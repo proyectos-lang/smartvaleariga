@@ -11,7 +11,8 @@ export type RedencionDetalle = {
   monto_oro: number;
   monto_plata: number;
   descuento_aplicado: number;
-  ticket: string;
+  /** Factura del punto de venta. Nula desde que la caja no la pide. */
+  ticket: string | null;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
   referido_por: string | null;
   nota: string | null;
@@ -48,7 +49,8 @@ type FilaCruda = {
   monto_oro: number;
   monto_plata: number;
   descuento_aplicado: number;
-  ticket: string;
+  /** Factura del punto de venta. Nula desde que la caja no la pide. */
+  ticket: string | null;
   /** Quién le pasó el vale al comprador. Nulo = lo usó el propio portador. */
   referido_por: string | null;
   nota: string | null;
@@ -133,7 +135,11 @@ export async function listarRedenciones({
 
   if (busqueda?.trim()) {
     const t = busqueda.trim().replace(/[%,]/g, "");
-    consulta = consulta.or(`ticket.ilike.%${t}%`);
+    // Antes solo por ticket; desde que la caja no lo captura, eso dejaba
+    // sin buscar todo lo nuevo. El comprador siempre está.
+    consulta = consulta.or(
+      `ticket.ilike.%${t}%,contactos.nombre.ilike.%${t}%,contactos.telefono.ilike.%${t}%`,
+    );
   }
 
   const { data, error, count } = await consulta;

@@ -212,7 +212,7 @@ export async function GET() {
       correo: r.comprador_correo ?? "",
       referido: r.referido_por ?? "",
       tienda: r.tienda,
-      ticket: r.ticket,
+      ticket: r.ticket ?? "",
       monto: r.monto_compra,
       montoOro: r.monto_oro,
       montoPlata: r.monto_plata,

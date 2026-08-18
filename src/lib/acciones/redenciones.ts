@@ -77,16 +77,6 @@ const EsquemaRedencion = z.object({
     .trim()
     .transform((v) => (v === "" ? null : v))
     .pipe(z.union([z.null(), Monto])),
-  ticket: z
-    .string()
-    .trim()
-    .min(1, "Escribe el número de ticket o factura.")
-    .max(60),
-  nota: z
-    .string()
-    .trim()
-    .max(400)
-    .transform((v) => (v === "" ? null : v)),
 });
 
 export type EstadoRedencion = {
@@ -110,8 +100,6 @@ export async function registrarRedencion(
     montoOro: formData.get("montoOro") ?? "",
     montoPlata: formData.get("montoPlata") ?? "",
     descuento: formData.get("descuento") ?? "",
-    ticket: formData.get("ticket") ?? "",
-    nota: formData.get("nota") ?? "",
     referidoPor: formData.get("referidoPor") ?? "",
   });
 
@@ -151,9 +139,10 @@ export async function registrarRedencion(
     p_telefono: d.telefono,
     p_correo: d.correo,
     p_monto: d.monto,
-    p_ticket: d.ticket,
+    // La caja ya no los pide. La base los conserva para lo ya registrado.
+    p_ticket: null,
     p_descuento: d.descuento,
-    p_nota: d.nota,
+    p_nota: null,
     p_referido_por: d.referidoPor,
     p_monto_oro: d.montoOro,
     p_monto_plata: d.montoPlata,
