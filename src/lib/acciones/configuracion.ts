@@ -23,6 +23,10 @@ export type EstadoConfig = {
 const LIMITES: Record<string, { min: number; max: number; etiqueta: string }> = {
   descuento_oro: { min: 0, max: 100, etiqueta: "Descuento en oro" },
   descuento_plata: { min: 0, max: 100, etiqueta: "Descuento en plata" },
+  // El A3 tiene tarifa propia: el visitante de tienda no compró antes ni
+  // vino recomendado, así que se le ofrece menos.
+  descuento_oro_a3: { min: 0, max: 100, etiqueta: "Descuento A3 en oro" },
+  descuento_plata_a3: { min: 0, max: 100, etiqueta: "Descuento A3 en plata" },
   dias_vigencia_vale: { min: 1, max: 3650, etiqueta: "Días de vigencia" },
   vales_por_rango: { min: 1, max: 10000, etiqueta: "Vales por bloque" },
 };
@@ -62,13 +66,24 @@ export async function guardarConfiguracion(
   // Se actualiza clave por clave en lugar de con un upsert masivo: así una
   // clave desconocida no puede colarse en la tabla.
   for (const { clave, valor } of cambios) {
-    const { error } = await db()
+    const { data, error } = await db()
       .from("configuracion")
       .update({ valor })
-      .eq("clave", clave);
+      .eq("clave", clave)
+      .select("clave");
 
     if (error) {
       return { error: `No se pudo guardar ${clave}: ${error.message}` };
+    }
+
+    // `update` sobre una clave que no está en la tabla no es un error para
+    // Postgres: no toca ninguna fila y calla. Sin esto, la pantalla diría
+    // "Configuración guardada" habiendo guardado nada —que es justo lo que
+    // pasa cuando falta la migración que siembra esa clave.
+    if (!data || data.length === 0) {
+      return {
+        error: `La clave ${clave} no existe en la base. Falta aplicar la migración que la crea.`,
+      };
     }
   }
 

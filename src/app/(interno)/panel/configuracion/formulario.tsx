@@ -84,10 +84,11 @@ export function FormularioConfiguracion({
             Descuento por material
           </h3>
           <p className="text-ink/50 m-0 text-[12.5px] leading-relaxed">
-            La misma oferta para todos los tipos de vale: lo que cambia el
-            descuento es la pieza, no el cliente. Se aplica solo a los vales
-            que se emitan de aquí en adelante; los ya entregados conservan los
-            porcentajes con los que se generaron.
+            Lo que manda el descuento es la pieza. La tarifa general vale para
+            A1, A2 y A4; el A3 lleva la suya, más baja, porque es el visitante
+            que llega a tienda sin haber comprado antes ni venir recomendado.
+            Se aplica solo a los vales que se emitan de aquí en adelante: los
+            ya entregados conservan los porcentajes con los que se generaron.
           </p>
         </div>
 
@@ -108,6 +109,31 @@ export function FormularioConfiguracion({
             sufijo="%"
             error={err("descuento_plata")}
           />
+        </div>
+
+        <div className="border-ink/8 flex flex-col gap-4 border-t pt-5">
+          <span className="text-ink/42 text-[9px] font-medium tracking-[0.2em]">
+            SOLO PARA LOS VALES A3 · VISITANTE DE TIENDA
+          </span>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CampoNumero
+              clave="descuento_oro_a3"
+              etiqueta="PIEZAS DE ORO"
+              ayuda="Sustituye a la tarifa general en los vales A3."
+              valor={v("descuento_oro_a3", "15")}
+              sufijo="%"
+              error={err("descuento_oro_a3")}
+            />
+            <CampoNumero
+              clave="descuento_plata_a3"
+              etiqueta="PIEZAS DE PLATA"
+              ayuda="Sustituye a la tarifa general en los vales A3."
+              valor={v("descuento_plata_a3", "35")}
+              sufijo="%"
+              error={err("descuento_plata_a3")}
+            />
+          </div>
         </div>
       </section>
 
