@@ -175,7 +175,7 @@ async function probarEmision() {
     `${a1.descuento_oro_pct}% oro · ${a1.descuento_plata_pct}% plata`,
   );
   comprobar(
-    "la vigencia son 30 días",
+    "A1 conserva la ventana rodante de 30 días",
     Math.round(
       (new Date(a1.fecha_vencimiento) - new Date(a1.fecha_emision)) / 86400000,
     ) === 30,
@@ -210,6 +210,35 @@ async function probarEmision() {
     Number(a3.descuento_oro_pct) === 15 &&
       Number(a3.descuento_plata_pct) === 35,
     `${a3.descuento_oro_pct}% oro · ${a3.descuento_plata_pct}% plata`,
+  );
+
+  // El A3 no cuenta días: muere el día de cierre de la campaña, lo emita
+  // quien lo emita. Se compara en hora de Guatemala, que es la que vale.
+  const diaGT = (iso) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Guatemala",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(iso));
+
+  const [corte] = await rest(
+    "configuracion?select=valor&clave=eq.vigencia_hasta_a3",
+  );
+  comprobar(
+    "la campaña A3 tiene día de cierre configurado",
+    Boolean(corte?.valor),
+    corte?.valor ?? "sin clave",
+  );
+  comprobar(
+    "el A3 vence el día de cierre, no a los 30 días",
+    diaGT(a3.fecha_vencimiento) === corte.valor,
+    `vence ${diaGT(a3.fecha_vencimiento)}, se esperaba ${corte.valor}`,
+  );
+  comprobar(
+    "y vence al cerrar ese día en Guatemala, no a medianoche",
+    new Date(a3.fecha_vencimiento).toISOString().slice(11, 19) === "05:59:59",
+    new Date(a3.fecha_vencimiento).toISOString(),
   );
 
   await debeFallar(
