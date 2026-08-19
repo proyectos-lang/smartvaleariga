@@ -5,12 +5,19 @@
  *   npm run equipo:sembrar                 crearlo
  *   npm run equipo:sembrar -- --rango 100  y además asignar un bloque a cada una
  *   npm run equipo:sembrar -- --csv equipo.csv   guardar las credenciales
+ *   npm run equipo:sembrar -- --sql alta-equipo.sql   generar el .sql y no tocar la base
  *
  * Es idempotente: se puede volver a correr. Las tiendas se identifican por
  * nombre y las cuentas por su usuario de acceso. Lo que ya existe se
  * actualiza —nombre, tienda, rol— pero NUNCA se le cambia la contraseña, para
  * que reejecutar el script no deje a media tienda sin poder entrar. Para
  * reponer una clave olvidada está `--reset-claves`.
+ *
+ * Con `--sql` no escribe en la base: deja un archivo listo para pegar en el
+ * SQL Editor de Supabase, con los hashes ya calculados. Postgres no sabe
+ * hacer scrypt —no lo trae ni pgcrypto—, así que el hash tiene que salir de
+ * aquí sí o sí; lo que el .sql lleva dentro es el resultado, nunca la
+ * contraseña.
  *
  * Reimplementa el hash de src/lib/auth/contrasena.ts porque corre fuera de
  * Next y no puede importar TypeScript. Los dos formatos deben coincidir:
@@ -72,29 +79,22 @@ const VENDEDORAS = [
 
 /* ── Contraseñas ─────────────────────────────────────────────────────────
  *
- * Fáciles de teclear en el mostrador y de dictar por teléfono: una palabra
- * de la casa y cuatro cifras. No se derivan del usuario —`karla2026` lo
- * adivina cualquiera que vea la lista de vendedoras—, y no llevan mayúsculas
- * ni signos, que en un teclado de móvil cuestan tres toques cada uno.
- */
-const PALABRAS = [
-  "plata", "perla", "joya", "ambar", "jade", "coral", "rubi",
-  "topacio", "zafiro", "onix", "cuarzo", "nacar", "opalo", "esmeralda",
-];
-
-/**
- * Todas las palabras llevan cuatro letras o más: con las cuatro cifras dan
- * los ocho caracteres que exige `revisarFortaleza` en la propia aplicación.
- * «oro» estaba en la lista y producía claves de siete, que entran pero que
- * la app rechazaría si la vendedora intentara ponerse esa misma después.
+ * El nombre de acceso y cuatro cifras: `karla4821`. Es lo más fácil de
+ * dictar y de teclear en un mostrador, que es lo que se pidió.
+ *
+ * Conviene saber lo que implica: quien vea la lista de vendedoras conoce ya
+ * la mitad de cada contraseña, así que lo único que la protege son las
+ * cuatro cifras. Sirve para arrancar; no para dejarlas puestas un año.
  */
 const LARGO_MINIMO = 8;
 
-function claveFacil() {
-  const b = randomBytes(3);
-  const palabra = PALABRAS[b[0] % PALABRAS.length];
-  const cifras = String(((b[1] << 8) | b[2]) % 9000 + 1000);
-  const clave = `${palabra}${cifras}`;
+function claveFacil(usuario) {
+  // El usuario puede llevar punto si hubo que desempatar (karla.deleon);
+  // en la contraseña estorba al dictarla.
+  const base = usuario.replace(/[^a-z0-9]/gi, "");
+  const b = randomBytes(2);
+  const cifras = String((((b[0] << 8) | b[1]) % 9000) + 1000);
+  const clave = `${base}${cifras}`;
 
   // Las mismas reglas que aplica la aplicación al cambiar una contraseña.
   if (
@@ -102,7 +102,9 @@ function claveFacil() {
     !/[a-zA-Z]/.test(clave) ||
     !/[0-9]/.test(clave)
   ) {
-    throw new Error(`La clave generada "${clave}" no cumple las reglas mínimas.`);
+    throw new Error(
+      `La clave de "${usuario}" quedaría en "${clave}", que no cumple el mínimo de ${LARGO_MINIMO} caracteres.`,
+    );
   }
   return clave;
 }
@@ -134,10 +136,13 @@ function argumentos() {
   return args;
 }
 
+const credencialesSql = [];
+
 const args = argumentos();
 const ensayo = args.dry === "true";
 const resetear = args["reset-claves"] === "true";
 const tamanoRango = args.rango && args.rango !== "true" ? Number(args.rango) : null;
+const rutaSql = args.sql && args.sql !== "true" ? args.sql : null;
 
 const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const servicio = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -203,6 +208,75 @@ console.log(
 );
 console.log(`${url}\n`);
 
+/* ── Salida en SQL ───────────────────────────────────────────────────────
+ *
+ * Para quien prefiere pegarlo en el SQL Editor, como las migraciones. No
+ * consulta ni escribe en la base: las inserciones son idempotentes por sí
+ * solas, así que el archivo se puede correr dos veces sin duplicar nada ni
+ * pisar contraseñas ya entregadas.
+ */
+if (rutaSql) {
+  const comilla = (t) => `'${String(t).replace(/'/g, "''")}'`;
+  const guion = "-".repeat(70);
+  const lineas = [
+    `-- ${guion}`,
+    "-- ARIGA SMART VALE — alta del equipo",
+    "--",
+    "-- GENERADO por scripts/sembrar-equipo.mjs. No editar a mano.",
+    "--",
+    "-- Se puede correr dos veces sin miedo: `on conflict do nothing` deja",
+    "-- intactas las tiendas y las cuentas que ya existan, así que nadie se",
+    "-- queda fuera por reejecutarlo.",
+    "--",
+    "-- Las contraseñas NO están aquí, solo su hash scrypt, que no se puede",
+    "-- deshacer. Las claves en claro salieron por la terminal al generar el",
+    "-- archivo, y esa es la única vez que se muestran.",
+    `-- ${guion}`,
+    "",
+    "begin;",
+    "",
+    "-- ═══ Puntos de venta ═══",
+    "insert into smartvale.tiendas (nombre) values",
+    TIENDAS.map((t) => `  (${comilla(t)})`).join(",\n"),
+    "on conflict (nombre) do nothing;",
+    "",
+    "-- ═══ Vendedoras ═══",
+  ];
+
+  for (const v of VENDEDORAS) {
+    const clave = claveFacil(v.usuario);
+    credencialesSql.push({ ...v, clave });
+
+    // La tienda se resuelve por nombre dentro del propio SQL: así el archivo
+    // no depende de unos ids que solo existen en esta base.
+    const tienda = v.tienda
+      ? `(select id from smartvale.tiendas where nombre = ${comilla(v.tienda)})`
+      : "null";
+
+    lineas.push(
+      "insert into smartvale.usuarios (nombre, correo, rol, tienda_id, contrasena_hash) values",
+      `  (${comilla(v.nombre)}, ${comilla(v.usuario)}, 'vendedora', ${tienda}, ${comilla(await hashear(clave))})`,
+      "on conflict (correo) do nothing;",
+    );
+  }
+
+  lineas.push("", "commit;", "");
+  writeFileSync(rutaSql, lineas.join("\n"), "utf8");
+
+  console.log(`Generado ${rutaSql}`);
+  console.log(`  ${TIENDAS.length} tiendas y ${VENDEDORAS.length} vendedoras`);
+  console.log("  Pégalo en Supabase → SQL Editor → Run.\n");
+
+  console.log("Credenciales — no se vuelven a mostrar\n");
+  console.log(`  ${"USUARIO".padEnd(10)} ${"CONTRASEÑA".padEnd(14)} NOMBRE`);
+  for (const c of credencialesSql) {
+    console.log(`  ${c.usuario.padEnd(10)} ${c.clave.padEnd(14)} ${c.nombre}`);
+  }
+  console.log("\n  Entran en /login con el usuario, sin correo ni arroba.\n");
+
+  process.exit(0);
+}
+
 /* ── Tiendas ─────────────────────────────────────────────────────────── */
 
 console.log("Puntos de venta");
@@ -251,7 +325,7 @@ for (const v of VENDEDORAS) {
 
     let clave = null;
     if (resetear) {
-      clave = claveFacil();
+      clave = claveFacil(v.usuario);
       cambios.contrasena_hash = await hashear(clave);
     }
 
@@ -273,7 +347,7 @@ for (const v of VENDEDORAS) {
     continue;
   }
 
-  const clave = claveFacil();
+  const clave = claveFacil(v.usuario);
 
   if (ensayo) {
     console.log(`  se crearía   ${v.usuario.padEnd(9)} ${v.nombre}`);
