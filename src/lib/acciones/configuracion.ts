@@ -25,6 +25,7 @@ export type EstadoConfig = {
  * código.
  */
 const FECHAS: Record<string, string> = {
+  vigencia_hasta: "Último día de la campaña",
   vigencia_hasta_a3: "Último día de los vales A3",
 };
 

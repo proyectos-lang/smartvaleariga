@@ -174,8 +174,8 @@ export function FormularioConfiguracion({
 
           <CampoFecha
             clave="vigencia_hasta_a3"
-            etiqueta="ÚLTIMO DÍA DE LA CAMPAÑA A3"
-            ayuda="Todos los A3 vencen ese día, se emitan cuando se emitan; no cuentan los días de vigencia general. Déjalo vacío para volver a la ventana rodante."
+            etiqueta="ÚLTIMO DÍA SOLO PARA LOS A3"
+            ayuda="Déjalo vacío y los A3 usan el día de cierre de la campaña. Solo se llena si el A3 tiene que terminar antes o después que el resto."
             valor={v("vigencia_hasta_a3", "")}
             error={err("vigencia_hasta_a3")}
           />
@@ -183,15 +183,30 @@ export function FormularioConfiguracion({
       </section>
 
       <section className="border-ink/8 flex flex-col gap-4 border-t pt-6">
-        <h3 className="font-display m-0 text-[19px] leading-tight font-normal">
-          Vigencia y cupos
-        </h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="font-display m-0 text-[19px] leading-tight font-normal">
+            Vigencia y cupos
+          </h3>
+          <p className="text-ink/50 m-0 text-[12.5px] leading-relaxed">
+            Con día de cierre, todos los vales mueren esa fecha se emitan
+            cuando se emitan: uno dado la víspera dura un día. Sin fecha, cada
+            vale vive los días que diga la ventana. Lo que cambies aquí solo
+            afecta a lo que se emita de aquí en adelante.
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <CampoFecha
+            clave="vigencia_hasta"
+            etiqueta="ÚLTIMO DÍA DE LA CAMPAÑA"
+            ayuda="Vale para las cuatro puertas. Vacío = usar la ventana de días."
+            valor={v("vigencia_hasta", "")}
+            error={err("vigencia_hasta")}
+          />
           <CampoNumero
             clave="dias_vigencia_vale"
-            etiqueta="VIGENCIA DEL VALE"
-            ayuda="Contados desde la emisión. No aplica a los tipos con día de cierre propio."
+            etiqueta="VENTANA SIN FECHA DE CIERRE"
+            ayuda="Contados desde la emisión. Se ignora mientras haya día de cierre."
             valor={v("dias_vigencia_vale", "30")}
             sufijo="días"
             min={1}
