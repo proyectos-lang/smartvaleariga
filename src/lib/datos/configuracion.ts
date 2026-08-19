@@ -85,11 +85,21 @@ function tarifasDe(mapa: Record<string, string>, tipo?: TipoVale): Tarifas {
     return tipo ? leer(`${clave}_${tipo.toLowerCase()}`, general) : general;
   };
 
-  // Misma cascada para la fecha de corte: la del tipo, si no la general.
-  const hasta =
-    (tipo ? mapa[`vigencia_hasta_${tipo.toLowerCase()}`] : undefined) ??
-    mapa["vigencia_hasta"];
-  const dia = hasta?.trim() ? hasta.trim() : null;
+  /*
+   * Misma cascada para la fecha de corte: la del tipo, si no la general.
+   *
+   * Una clave vacía cuenta como ausente, igual que hace `fn_config_texto` en
+   * la base con su `nullif(btrim(...), '')`. Con `??` no bastaba: la cadena
+   * vacía no es `undefined`, así que al vaciar `vigencia_hasta_a3` para que
+   * el A3 heredara, esta lectura se quedaba en el vacío y no llegaba nunca a
+   * la general. La pantalla del cliente prometía «30 días desde hoy» cuando
+   * su vale iba a morir el 31 de octubre.
+   */
+  const noVacio = (v?: string) => (v && v.trim() ? v.trim() : null);
+
+  const dia =
+    (tipo ? noVacio(mapa[`vigencia_hasta_${tipo.toLowerCase()}`]) : null) ??
+    noVacio(mapa["vigencia_hasta"]);
 
   return {
     oro: porTipo("descuento_oro", 20),

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import QRCode from "react-qr-code";
+
+import { PALETA } from "@/lib/vale-plantilla";
 import { Check, Copy, MessageCircle, Printer } from "lucide-react";
 
 /**
@@ -35,9 +38,104 @@ export function EnlacePublico({
 
   return (
     <div className="flex flex-col items-center gap-5">
-      {/* Grande a propósito: se escanea desde el teléfono de al lado */}
-      <div className="rounded-card border-ink/8 border bg-white p-5">
-        <QRCode value={url} size={196} level="H" fgColor="#0B0B0C" />
+      {/*
+        Mismo lenguaje que la tarjeta del vale, y con la misma paleta: es el
+        primer material de ARIGA que ve el cliente, así que enseñarlo sobre
+        blanco lo hacía parecer una pantalla del sistema y no una pieza de la
+        marca. Va con la oferta impresa encima, que es lo que decide si se
+        agacha a escanear.
+      */}
+      <div
+        className="rounded-panel relative w-full overflow-hidden"
+        style={{ backgroundColor: PALETA.fondo }}
+      >
+        <div className="vale-textura pointer-events-none absolute inset-0" />
+
+        <div
+          className="pointer-events-none absolute top-3 left-3 size-8 border-t border-l"
+          style={{ borderColor: PALETA.oro }}
+        />
+        <div
+          className="pointer-events-none absolute right-3 bottom-3 size-8 border-r border-b"
+          style={{ borderColor: PALETA.oro }}
+        />
+
+        <div className="relative flex flex-col items-center px-5 py-7">
+          <Image
+            src="/brand/ariga-logo.png"
+            alt="ARIGA Joyería"
+            width={72}
+            height={72}
+            className="rounded-full"
+          />
+
+          <div
+            className="mt-4 mb-4 h-px w-10 opacity-60"
+            style={{ backgroundColor: PALETA.oro }}
+          />
+
+          {/* Las dos tarifas del A3, cada cifra del color de su material.
+              Son las suyas —15/35—, no las generales: prometer aquí el 20/40
+              sería ofrecer un descuento que el vale no va a traer. */}
+          <div className="flex items-center">
+            {(
+              [
+                ["EN ORO", tarifas.oro, PALETA.oro],
+                ["EN PLATA", tarifas.plata, PALETA.plata],
+              ] as [string, number, string][]
+            ).map(([etiqueta, pct, tinte], i) => (
+              <div key={etiqueta} className="flex items-center">
+                {i === 1 ? (
+                  <div
+                    className="mx-5 h-[44px] w-px opacity-55"
+                    style={{ backgroundColor: PALETA.oro }}
+                  />
+                ) : null}
+                <span className="flex flex-col items-center">
+                  <span
+                    className="font-display text-[38px] leading-none"
+                    style={{ color: tinte }}
+                  >
+                    {pct}%
+                  </span>
+                  <span
+                    className="mt-[7px] ml-[0.22em] text-[9px] tracking-[0.22em]"
+                    style={{ color: PALETA.gris }}
+                  >
+                    {etiqueta}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Grande a propósito: se escanea desde el teléfono de al lado */}
+          <div
+            className="rounded-card mt-5 p-3"
+            style={{ backgroundColor: PALETA.blanco }}
+          >
+            <QRCode
+              value={url}
+              size={188}
+              level="H"
+              bgColor={PALETA.blanco}
+              fgColor="#0B0B0C"
+            />
+          </div>
+
+          <span
+            className="mt-4 text-[11.5px] tracking-[0.16em] uppercase"
+            style={{ color: PALETA.oro }}
+          >
+            Escanea y regístrate
+          </span>
+          <span
+            className="mt-[6px] text-center text-[11px]"
+            style={{ color: PALETA.gris }}
+          >
+            {tienda}
+          </span>
+        </div>
       </div>
 
       <div className="border-ink/10 bg-ink/2 rounded-field flex w-full items-center gap-2 border px-3 py-[10px]">
@@ -79,10 +177,8 @@ export function EnlacePublico({
       </div>
 
       <p className="text-ink/45 m-0 text-center text-[11.5px] leading-relaxed">
-        Muéstraselo al cliente para que lo escane, o mándaselo. Se registra
-        solo y recibe su vale al instante —{tarifas.oro}% en oro y {tarifas.plata}%
-        en plata—, a nombre de{" "}
-        {tienda}.
+        Muéstraselo al cliente para que lo escanee, o mándaselo. Se registra
+        solo, elige quién lo atendió y recibe su vale al instante.
       </p>
     </div>
   );

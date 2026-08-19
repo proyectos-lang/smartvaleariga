@@ -174,12 +174,9 @@ async function probarEmision() {
     Number(a1.descuento_oro_pct) === 20 && Number(a1.descuento_plata_pct) === 40,
     `${a1.descuento_oro_pct}% oro · ${a1.descuento_plata_pct}% plata`,
   );
-  comprobar(
-    "A1 conserva la ventana rodante de 30 días",
-    Math.round(
-      (new Date(a1.fecha_vencimiento) - new Date(a1.fecha_emision)) / 86400000,
-    ) === 30,
-  );
+  // La vigencia se comprueba más abajo, cuando ya están emitidos los cuatro
+  // tipos: desde que la campaña tiene fecha de cierre, la regla es la misma
+  // para todos y verificarla en uno solo no diría nada.
 
   const a2 = await rpc("fn_emitir_vale", {
     p_usuario_id: creado.usuarioId,
@@ -223,20 +220,26 @@ async function probarEmision() {
     }).format(new Date(iso));
 
   const [corte] = await rest(
-    "configuracion?select=valor&clave=eq.vigencia_hasta_a3",
+    "configuracion?select=valor&clave=eq.vigencia_hasta",
   );
   comprobar(
-    "la campaña A3 tiene día de cierre configurado",
+    "la campaña tiene día de cierre configurado",
     Boolean(corte?.valor),
     corte?.valor ?? "sin clave",
   );
+
+  // Las cuatro puertas mueren el mismo día: el A3 lo hereda de la clave
+  // general desde que dejó de tener fecha propia.
+  for (const [tipo, vale] of [["A1", a1], ["A2", a2], ["A3", a3]]) {
+    comprobar(
+      `el ${tipo} vence el día de cierre, no a los 30 días`,
+      diaGT(vale.fecha_vencimiento) === corte.valor,
+      `vence ${diaGT(vale.fecha_vencimiento)}, se esperaba ${corte.valor}`,
+    );
+  }
+
   comprobar(
-    "el A3 vence el día de cierre, no a los 30 días",
-    diaGT(a3.fecha_vencimiento) === corte.valor,
-    `vence ${diaGT(a3.fecha_vencimiento)}, se esperaba ${corte.valor}`,
-  );
-  comprobar(
-    "y vence al cerrar ese día en Guatemala, no a medianoche",
+    "y vencen al cerrar ese día en Guatemala, no a medianoche",
     new Date(a3.fecha_vencimiento).toISOString().slice(11, 19) === "05:59:59",
     new Date(a3.fecha_vencimiento).toISOString(),
   );
@@ -693,12 +696,22 @@ async function probarAutorregistroA4(a1) {
 async function probarCampanaCerrada() {
   console.log("\nCampaña con fecha de corte");
 
-  const [antes] = await rest(
-    "configuracion?select=valor&clave=eq.vigencia_hasta_a3",
+  // Se tocan las dos claves y se restauran al final: la del tipo manda sobre
+  // la general, así que para probar «sin fecha de corte» hay que vaciar las
+  // dos, o el A3 seguiría heredando el cierre de la campaña.
+  const CLAVES = ["vigencia_hasta_a3", "vigencia_hasta"];
+
+  const antes = Object.fromEntries(
+    await Promise.all(
+      CLAVES.map(async (c) => {
+        const [fila] = await rest(`configuracion?select=valor&clave=eq.${c}`);
+        return [c, fila?.valor ?? ""];
+      }),
+    ),
   );
 
-  const poner = (valor) =>
-    rest("configuracion?clave=eq.vigencia_hasta_a3", {
+  const poner = (valor, clave = "vigencia_hasta_a3") =>
+    rest(`configuracion?clave=eq.${clave}`, {
       method: "PATCH",
       body: JSON.stringify({ valor }),
     });
@@ -727,8 +740,9 @@ async function probarCampanaCerrada() {
       `quedan ${cupoTras.restantes}`,
     );
 
-    // Sin fecha, el A3 vuelve a la ventana rodante de días.
+    // Sin ninguna de las dos, el A3 vuelve a la ventana rodante de días.
     await poner("");
+    await poner("", "vigencia_hasta");
     const suelto = await rpc("fn_emitir_vale", {
       p_usuario_id: creado.usuarioId,
       p_tipo: "A3",
@@ -757,7 +771,7 @@ async function probarCampanaCerrada() {
     );
   } finally {
     // Se deja la configuración exactamente como estaba.
-    await poner(antes?.valor ?? "");
+    for (const c of CLAVES) await poner(antes[c], c);
   }
 }
 
