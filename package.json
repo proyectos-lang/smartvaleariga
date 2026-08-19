@@ -12,6 +12,7 @@
     "db:check": "node --env-file=.env.local scripts/verificar-supabase.mjs",
     "db:bundle": "node scripts/empaquetar-migraciones.mjs",
     "usuarios:crear": "node --env-file=.env.local scripts/crear-usuario.mjs",
+    "equipo:sembrar": "node --env-file=.env.local scripts/sembrar-equipo.mjs",
     "marca:generar": "node scripts/generar-marca.mjs",
     "fuentes:generar": "node scripts/generar-fuentes.mjs",
     "test:negocio": "node --env-file=.env.local scripts/probar-negocio.mjs",

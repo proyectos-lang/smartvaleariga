@@ -48,3 +48,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Credenciales en claro del alta de equipo: nunca al repositorio.
+credenciales*.csv
+equipo*.csv
