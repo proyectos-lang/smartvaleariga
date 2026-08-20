@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { requerirAdmin } from "@/lib/auth/guardas";
 import {
-  listarContactos,
+  listarContactosCompleto,
   ORDENES_CONTACTOS,
   type FiltroContactos,
   type OrdenContactos,
@@ -18,6 +18,11 @@ export const runtime = "nodejs";
  * Toma los mismos parámetros que la página, así que exporta la selección
  * filtrada y no la base entera: quien acota «los A2 de Pradera que aún no
  * compran» se lleva justo esa lista para trabajarla.
+ *
+ * Sale COMPLETA, no la página que se esté viendo: `listarContactosCompleto`
+ * recorre el resultado de mil en mil hasta agotarlo. Pedir un rango enorme de
+ * una vez parecía más simple, pero PostgREST puede llevar un techo por
+ * petición y habría devuelto un libro a medias sin avisar de nada.
  *
  * Solo administradores: son teléfonos y correos de clientes.
  */
@@ -45,12 +50,9 @@ export async function GET(request: NextRequest) {
       orden && orden in ORDENES_CONTACTOS
         ? (orden as OrdenContactos)
         : "reciente",
-    // Un directorio se exporta entero, no de cincuenta en cincuenta.
-    pagina: 1,
-    porPagina: 5000,
   };
 
-  const { contactos } = await listarContactos(filtros);
+  const { contactos, total, truncado } = await listarContactosCompleto(filtros);
 
   const libro = new ExcelJS.Workbook();
   libro.creator = "ARIGA SMART VALE";
@@ -126,6 +128,18 @@ export async function GET(request: NextRequest) {
       referidos: c.referidos,
       alta: new Date(c.fecha_alta),
     });
+  }
+
+  /*
+   * Si el tope de seguridad cortó el recorrido, tiene que constar DENTRO del
+   * archivo. Un aviso en pantalla se pierde en cuanto se manda el .xlsx por
+   * correo, y entonces nadie sabe que esa lista no está entera.
+   */
+  if (truncado) {
+    const fila = hoja.addRow({
+      nombre: `⚠ Lista incompleta: se exportaron ${contactos.length} de ${total}. Acota los filtros.`,
+    });
+    fila.font = { bold: true, color: { argb: "FF8E4534" } };
   }
 
   if (contactos.length > 0) {

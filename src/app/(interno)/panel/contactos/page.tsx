@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { Sheet } from "lucide-react";
 
+import { Paginacion } from "@/components/ui/paginacion";
 import { Tarjeta, TarjetaIndicador } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
 import { ChipTipo } from "@/components/vales/chip-tipo";
@@ -11,6 +11,8 @@ import {
   origenesUsados,
   resumenContactos,
   ORDENES_CONTACTOS,
+  POR_PAGINA,
+  POR_PAGINA_POR_DEFECTO,
   type FiltroContactos,
   type OrdenContactos,
 } from "@/lib/datos/contactos";
@@ -72,6 +74,13 @@ export default async function PaginaContactos({
         : undefined,
     orden,
     pagina: Number(params.pagina) || 1,
+    // Solo se aceptan los tamaños ofrecidos: `?porPagina=99999` sería una
+    // forma de pedir la base entera de un tirón desde la barra del navegador.
+    porPagina: POR_PAGINA.includes(
+      Number(params.porPagina) as (typeof POR_PAGINA)[number],
+    )
+      ? Number(params.porPagina)
+      : POR_PAGINA_POR_DEFECTO,
   };
 
   const [{ contactos, total, pagina, porPagina }, resumen, tiendas, origenes] =
@@ -94,10 +103,15 @@ export default async function PaginaContactos({
       origen: filtros.origen ?? "",
       compro: filtros.compro ?? "",
       orden,
+      porPagina: String(filtros.porPagina ?? POR_PAGINA_POR_DEFECTO),
       ...cambios,
     };
     for (const [k, v] of Object.entries(base)) {
-      if (v && v !== "todos" && !(k === "orden" && v === "reciente")) q.set(k, v);
+      // Los valores por omisión no ensucian la URL.
+      if (!v || v === "todos") continue;
+      if (k === "orden" && v === "reciente") continue;
+      if (k === "porPagina" && v === String(POR_PAGINA_POR_DEFECTO)) continue;
+      q.set(k, v);
     }
     const s = q.toString();
     return `/panel/contactos${s ? `?${s}` : ""}`;
@@ -118,7 +132,7 @@ export default async function PaginaContactos({
         <TarjetaIndicador
           etiqueta="YA COMPRARON"
           valor={resumen.conCompra}
-          nota={`${resumen.conversion}% de los mostrados`}
+          nota={`${resumen.conversion}% de los que coinciden`}
         />
         <TarjetaIndicador
           etiqueta="CON CORREO"
@@ -128,7 +142,7 @@ export default async function PaginaContactos({
         <TarjetaIndicador
           etiqueta="COMPRA ACUMULADA"
           valor={monedaCorta(resumen.gastado)}
-          nota={resumen.parcial ? "De los primeros 1000" : "De los mostrados"}
+          nota="De todos los que coinciden"
         />
       </section>
 
@@ -151,7 +165,7 @@ export default async function PaginaContactos({
           <span className="text-ink/50 text-[12.5px]">
             {total === 0
               ? "Ningún contacto"
-              : `${contactos.length} de ${total} contactos`}
+              : `${total} ${total === 1 ? "contacto" : "contactos"}`}
             {paginas > 1 ? ` · página ${pagina} de ${paginas}` : ""}
           </span>
           <a
@@ -301,31 +315,14 @@ export default async function PaginaContactos({
           </div>
         )}
 
-        {paginas > 1 ? (
-          <div className="border-ink/6 text-ink/50 flex items-center justify-between border-t px-5 py-3 text-[12px]">
-            <span>
-              {porPagina} por página · {total} en total
-            </span>
-            <span className="flex gap-4">
-              {pagina > 1 ? (
-                <Link
-                  href={enlace({ pagina: String(pagina - 1) })}
-                  className="text-gold-dark"
-                >
-                  Anterior
-                </Link>
-              ) : null}
-              {pagina < paginas ? (
-                <Link
-                  href={enlace({ pagina: String(pagina + 1) })}
-                  className="text-gold-dark"
-                >
-                  Siguiente
-                </Link>
-              ) : null}
-            </span>
-          </div>
-        ) : null}
+        <Paginacion
+          pagina={pagina}
+          paginas={paginas}
+          total={total}
+          porPagina={porPagina}
+          opcionesPorPagina={POR_PAGINA}
+          enlace={enlace}
+        />
       </Tarjeta>
 
       <p className="text-ink/40 m-0 px-1 text-[11.5px] leading-relaxed">
