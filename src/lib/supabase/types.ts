@@ -576,6 +576,25 @@ export type Database = {
         Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
       };
 
+      fn_reactivar_vale: {
+        Args: { p_codigo: string; p_usuario_id: number };
+        Returns: Database["smartvale"]["Tables"]["vales"]["Row"];
+      };
+
+      fn_eliminar_vale: {
+        Args: { p_codigo: string; p_usuario_id: number };
+        Returns: {
+          codigo_borrado: string;
+          /** El contacto se fue con él por no quedarle nada más. */
+          contacto_borrado: boolean;
+        };
+      };
+
+      fn_es_admin: {
+        Args: { p_usuario_id: number };
+        Returns: boolean;
+      };
+
       fn_asignar_rango: {
         Args: {
           p_usuario_id: number;

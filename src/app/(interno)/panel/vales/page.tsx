@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Trash2 } from "lucide-react";
 
 import { ChipEstado } from "@/components/ui/chip-estado";
 import { Tarjeta } from "@/components/ui/tarjeta";
@@ -64,8 +65,24 @@ export default async function PaginaVales({
     return `/panel/vales${s ? `?${s}` : ""}`;
   };
 
+  // Al eliminar no se puede volver a la ficha del vale —ya no existe—, así
+  // que el aviso viaja hasta aquí.
+  const eliminado =
+    typeof params.eliminado === "string" ? params.eliminado : null;
+
   return (
     <>
+      {eliminado ? (
+        <p className="border-ink/12 bg-ink/3 text-ink/65 rounded-card m-0 flex items-center gap-2 border px-4 py-3 text-[12.5px]">
+          <Trash2 size={15} className="text-clay shrink-0" />
+          Se eliminó el vale{" "}
+          <span className="font-mono">{eliminado}</span>
+          {params.contacto === "1"
+            ? ", y su portador salió del directorio por no tener nada más."
+            : "."}
+        </p>
+      ) : null}
+
       <form action="/panel/vales" className="flex flex-wrap items-end gap-3">
         {tipo !== "todos" ? <input type="hidden" name="tipo" value={tipo} /> : null}
         {estado !== "todos" ? (

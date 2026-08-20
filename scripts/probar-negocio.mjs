@@ -587,9 +587,13 @@ async function probarA4Referidos(a2) {
     p_telefono: "5218112344006",
     p_origen: "Prueba de anulación",
   });
+  // Anular es de administrador desde que existe la pantalla de retirada.
+  const [quienAnula] = await rest(
+    "usuarios?select=id&rol=eq.admin&activo=is.true&limit=1",
+  );
   await rpc("fn_anular_vale", {
     p_codigo: paraAnular.codigo,
-    p_usuario_id: creado.usuarioId,
+    p_usuario_id: quienAnula.id,
     p_motivo: "Prueba automatizada",
   });
   await debeFallar(
@@ -775,6 +779,146 @@ async function probarCampanaCerrada() {
   }
 }
 
+async function probarRetirarVales(a1ConCompras, a2ConReferido) {
+  console.log("\nAnular y eliminar");
+
+  const [admin] = await rest("usuarios?select=id&rol=eq.admin&activo=is.true&limit=1");
+
+  // Un vale limpio, del que se puede tirar sin consecuencias.
+  const limpio = await rpc("fn_emitir_vale", {
+    p_usuario_id: creado.usuarioId,
+    p_tipo: "A1",
+    p_nombre: `Desechable ${MARCA}`,
+    p_telefono: "5218112346001",
+    p_segmento: "A1-30",
+  });
+
+  await debeFallar(
+    "una vendedora no puede anular",
+    rpc("fn_anular_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: creado.usuarioId,
+      p_motivo: "Prueba de permisos",
+    }),
+    "SV012",
+  );
+
+  await debeFallar(
+    "anular sin motivo se rechaza",
+    rpc("fn_anular_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: admin.id,
+      p_motivo: "  ",
+    }),
+    "SV006",
+  );
+
+  const anulado = await rpc("fn_anular_vale", {
+    p_codigo: limpio.codigo,
+    p_usuario_id: admin.id,
+    p_motivo: "Se emitió por error",
+  });
+  comprobar(
+    "el administrador anula y queda el motivo y quién fue",
+    anulado.anulado === true &&
+      anulado.motivo_anulacion === "Se emitió por error" &&
+      anulado.anulado_por === admin.id,
+  );
+
+  await debeFallar(
+    "anular dos veces se rechaza",
+    rpc("fn_anular_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: admin.id,
+      p_motivo: "Otra vez",
+    }),
+    "SV002",
+  );
+
+  const reactivado = await rpc("fn_reactivar_vale", {
+    p_codigo: limpio.codigo,
+    p_usuario_id: admin.id,
+  });
+  comprobar(
+    "reactivar deshace la anulación y limpia el motivo",
+    reactivado.anulado === false &&
+      reactivado.motivo_anulacion === null &&
+      reactivado.anulado_por === null,
+  );
+
+  await debeFallar(
+    "reactivar uno que no está anulado se rechaza",
+    rpc("fn_reactivar_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: admin.id,
+    }),
+    "SV002",
+  );
+
+  await debeFallar(
+    "una vendedora no puede eliminar",
+    rpc("fn_eliminar_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: creado.usuarioId,
+    }),
+    "SV012",
+  );
+
+  // Lo que protege la contabilidad: un vale con compras no se borra.
+  await debeFallar(
+    "un vale con compras no se puede eliminar",
+    rpc("fn_eliminar_vale", {
+      p_codigo: a1ConCompras.codigo,
+      p_usuario_id: admin.id,
+    }),
+    "SV013",
+  );
+
+  // Ni uno que trajo gente: se perdería de dónde vinieron.
+  await debeFallar(
+    "un vale que trajo referidos no se puede eliminar",
+    rpc("fn_eliminar_vale", {
+      p_codigo: a2ConReferido.codigo,
+      p_usuario_id: admin.id,
+    }),
+    "SV013",
+  );
+
+  // Con parámetros OUT y sin SETOF, PostgREST devuelve un objeto suelto y
+  // no un arreglo de una fila.
+  const respuesta = await rpc("fn_eliminar_vale", {
+    p_codigo: limpio.codigo,
+    p_usuario_id: admin.id,
+  });
+  const borrado = Array.isArray(respuesta) ? respuesta[0] : respuesta;
+  comprobar(
+    "un vale sin rastro sí se elimina",
+    borrado.codigo_borrado === limpio.codigo,
+    JSON.stringify(borrado),
+  );
+  comprobar(
+    "y su portador sale del directorio por no quedarle nada",
+    borrado.contacto_borrado === true,
+  );
+
+  const quedan = await rest(`vales?select=id&codigo=eq.${limpio.codigo}`);
+  comprobar("ya no está en la base", quedan.length === 0);
+
+  const contacto = await rest(
+    `contactos?select=id&id=eq.${limpio.contacto_id}`,
+  );
+  comprobar("el contacto tampoco", contacto.length === 0);
+
+  await debeFallar(
+    "eliminar uno que no existe se rechaza",
+    rpc("fn_eliminar_vale", {
+      p_codigo: limpio.codigo,
+      p_usuario_id: admin.id,
+    }),
+    "SV002",
+  );
+}
+
 async function probarAgotamiento() {
   console.log("\nAgotamiento del rango");
 
@@ -888,6 +1032,7 @@ try {
   await probarA4Referidos(a2);
   await probarAutorregistroA4(a1);
   await probarCampanaCerrada();
+  await probarRetirarVales(a1, a2);
   await probarAgotamiento();
   await probarConcurrencia();
 } catch (e) {

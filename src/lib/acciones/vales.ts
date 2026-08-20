@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requerirSesion } from "@/lib/auth/guardas";
+import { requerirAdmin, requerirSesion } from "@/lib/auth/guardas";
 import { db } from "@/lib/supabase/server";
 import type { SegmentoA1, TipoVale } from "@/lib/supabase/types";
 import { SEGMENTO_A1_FIJO } from "@/lib/supabase/types";
@@ -197,25 +197,47 @@ export async function emitirVale(
   redirect(`/panel/vales/${data.codigo}?nuevo=1`);
 }
 
-/** Anula un vale. Solo el administrador o quien lo emitió. */
-export async function anularVale(_previo: EstadoEmision, formData: FormData) {
-  const sesion = await requerirSesion();
+/* ── Retirar un vale ──────────────────────────────────────────────────────
+ *
+ * Dos salidas que no son la misma cosa, y la diferencia importa:
+ *
+ *   ANULAR    lo deja muerto pero visible, con su motivo. Si el vale ya
+ *             circuló, alguien puede presentarlo en caja y hay que poder
+ *             explicarle por qué no vale. Se puede deshacer.
+ *
+ *   ELIMINAR  lo borra. Solo para lo que nunca debió existir y no dejó
+ *             rastro. No se puede deshacer.
+ *
+ * Las dos son de administrador, y la base lo vuelve a comprobar: el guarda
+ * de la pantalla protege la ruta, no la operación.
+ */
+
+export type EstadoAdminVale = {
+  error?: string;
+  ok?: string;
+} | null;
+
+/** Traduce el error de Postgres a algo que se pueda leer sin ser técnico. */
+function comoMensaje(error: { code?: string; message: string }): string {
+  // SV012 permiso, SV013 tiene rastro, SV002 no existe, SV003 vencido,
+  // SV006 falta el motivo. Todos traen texto escrito para esta pantalla.
+  if (["SV002", "SV003", "SV006", "SV012", "SV013"].includes(error.code ?? "")) {
+    return error.message;
+  }
+  return `No se pudo completar la operación: ${error.message}`;
+}
+
+export async function anularVale(
+  _previo: EstadoAdminVale,
+  formData: FormData,
+): Promise<EstadoAdminVale> {
+  const sesion = await requerirAdmin();
   const codigo = String(formData.get("codigo") ?? "").trim();
   const motivo = String(formData.get("motivo") ?? "").trim();
 
   if (!codigo) return { error: "Falta el código del vale." };
-  if (motivo.length < 4) return { error: "Escribe el motivo de la anulación." };
-
-  if (sesion.rol !== "admin") {
-    const { data: vale } = await db()
-      .from("vales")
-      .select("usuario_id")
-      .ilike("codigo", codigo)
-      .maybeSingle();
-
-    if (!vale || vale.usuario_id !== sesion.usuarioId) {
-      return { error: "Solo puedes anular vales que hayas emitido tú." };
-    }
+  if (motivo.length < 4) {
+    return { error: "Escribe el motivo de la anulación: queda guardado en el vale." };
   }
 
   const { error } = await db().rpc("fn_anular_vale", {
@@ -224,9 +246,71 @@ export async function anularVale(_previo: EstadoEmision, formData: FormData) {
     p_motivo: motivo,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: comoMensaje(error) };
 
   revalidatePath(`/panel/vales/${codigo}`);
   revalidatePath("/panel/vales");
-  return null;
+  revalidatePath("/panel");
+  return { ok: `${codigo} quedó anulado.` };
+}
+
+/** Deshace una anulación, mientras el vale no haya vencido. */
+export async function reactivarVale(
+  _previo: EstadoAdminVale,
+  formData: FormData,
+): Promise<EstadoAdminVale> {
+  const sesion = await requerirAdmin();
+  const codigo = String(formData.get("codigo") ?? "").trim();
+
+  if (!codigo) return { error: "Falta el código del vale." };
+
+  const { error } = await db().rpc("fn_reactivar_vale", {
+    p_codigo: codigo,
+    p_usuario_id: sesion.usuarioId,
+  });
+
+  if (error) return { error: comoMensaje(error) };
+
+  revalidatePath(`/panel/vales/${codigo}`);
+  revalidatePath("/panel/vales");
+  revalidatePath("/panel");
+  return { ok: `${codigo} vuelve a estar vigente.` };
+}
+
+/**
+ * Borra el vale. La base rechaza los que tienen compras o trajeron gente.
+ *
+ * Al terminar no se puede volver a su pantalla —ya no existe—, así que se
+ * sale al listado con el aviso puesto.
+ */
+export async function eliminarVale(
+  _previo: EstadoAdminVale,
+  formData: FormData,
+): Promise<EstadoAdminVale> {
+  const sesion = await requerirAdmin();
+  const codigo = String(formData.get("codigo") ?? "").trim();
+
+  if (!codigo) return { error: "Falta el código del vale." };
+
+  // Escribir el código a mano es el freno: un borrado sin vuelta atrás no
+  // puede quedar a un solo clic de distancia.
+  const confirmacion = String(formData.get("confirmacion") ?? "").trim();
+  if (confirmacion.toUpperCase() !== codigo.toUpperCase()) {
+    return { error: `Escribe ${codigo} para confirmar que quieres eliminarlo.` };
+  }
+
+  const { data, error } = await db().rpc("fn_eliminar_vale", {
+    p_codigo: codigo,
+    p_usuario_id: sesion.usuarioId,
+  });
+
+  if (error) return { error: comoMensaje(error) };
+
+  revalidatePath("/panel/vales");
+  revalidatePath("/panel/contactos");
+  revalidatePath("/panel");
+
+  const fila = Array.isArray(data) ? data[0] : data;
+  const conContacto = fila?.contacto_borrado ? "&contacto=1" : "";
+  redirect(`/panel/vales?eliminado=${encodeURIComponent(codigo)}${conContacto}`);
 }

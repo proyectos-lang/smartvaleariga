@@ -7,6 +7,8 @@ import { ChipEstado } from "@/components/ui/chip-estado";
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { ChipTipo } from "@/components/vales/chip-tipo";
 import { TarjetaVale } from "@/components/vales/tarjeta-vale";
+
+import { AccionesAdmin } from "./acciones-admin";
 import { requerirSesion } from "@/lib/auth/guardas";
 import { redencionesDeVale } from "@/lib/datos/redenciones";
 import { valePorCodigo } from "@/lib/datos/vales";
@@ -174,6 +176,17 @@ export default async function PaginaVale({
                 </div>
               ))}
             </dl>
+
+            {sesion.rol === "admin" ? (
+              <AccionesAdmin
+                codigo={vale.codigo}
+                anulado={vale.anulado}
+                motivo={vale.motivo_anulacion}
+                compras={vale.total_redenciones}
+                referidos={vale.referidos}
+                vencido={vale.estado === "vencido"}
+              />
+            ) : null}
           </Tarjeta>
 
           <Tarjeta className="overflow-hidden">
