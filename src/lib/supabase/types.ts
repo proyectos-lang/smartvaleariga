@@ -378,6 +378,50 @@ export type Database = {
         Relationships: [];
       };
 
+      vw_contactos_detalle: {
+        Row: {
+          contacto_id: number;
+          nombre: string;
+          telefono: string;
+          correo: string | null;
+          fecha_alta: string;
+
+          /** Puerta de entrada. Nulo = solo aparece como comprador. */
+          tipo: TipoVale | null;
+          vale_codigo: string | null;
+          segmento: SegmentoA1 | null;
+          origen: string | null;
+          tienda_id: number | null;
+          tienda: string | null;
+          usuario_id: number | null;
+          emisora: string | null;
+          autorregistro: boolean;
+          referidor: string | null;
+          origen_codigo: string | null;
+
+          vales: number;
+          vales_a1: number;
+          vales_a2: number;
+          vales_a3: number;
+          vales_a4: number;
+          vales_vigentes: number;
+          primer_vale: string | null;
+          ultimo_vale: string | null;
+
+          compras: number;
+          gastado: number;
+          gastado_oro: number;
+          gastado_plata: number;
+          ahorrado: number;
+          ultima_compra: string | null;
+          /** Dónde compró la última vez; puede no ser la tienda que lo captó. */
+          tienda_compra: string | null;
+
+          referidos: number;
+        };
+        Relationships: [];
+      };
+
       vw_ranking_tiendas: {
         Row: {
           tienda_id: number;
@@ -633,6 +677,7 @@ export type MetricasPorTipo = Vista<"vw_vales_por_tipo">;
 export type RankingVendedora = Vista<"vw_ranking_vendedoras">;
 export type DesempenoVendedora = Vista<"vw_desempeno_vendedoras">;
 export type RankingTienda = Vista<"vw_ranking_tiendas">;
+export type ContactoDetalle = Vista<"vw_contactos_detalle">;
 export type ViralidadA2 = Vista<"vw_viralidad_a2">;
 export type ActividadDiaria = Vista<"vw_actividad_diaria">;
 

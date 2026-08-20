@@ -59,6 +59,11 @@ export const NAVEGACION: GrupoNav[] = [
     etiqueta: "ADMINISTRACIÓN",
     soloAdmin: true,
     items: [
+      {
+        nombre: "Contactos",
+        href: "/panel/contactos",
+        titulo: "Directorio de contactos",
+      },
       { nombre: "Vendedoras", href: "/panel/vendedoras" },
       { nombre: "Rangos", href: "/panel/rangos", titulo: "Rangos correlativos" },
       { nombre: "Tiendas", href: "/panel/tiendas", titulo: "Puntos de venta" },
