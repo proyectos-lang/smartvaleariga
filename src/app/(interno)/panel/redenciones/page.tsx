@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PencilLine, Trash2 } from "lucide-react";
 
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
@@ -47,8 +48,28 @@ export default async function PaginaRedenciones({
     return `/panel/redenciones${s ? `?${s}` : ""}`;
   };
 
+  // Al eliminar no se puede volver a la pantalla de la compra: el aviso
+  // viaja hasta aquí.
+  const eliminada =
+    typeof params.eliminada === "string" ? params.eliminada : null;
+
   return (
     <>
+      {eliminada ? (
+        <p className="border-ink/12 bg-ink/3 text-ink/65 rounded-card m-0 flex items-center gap-2 border px-4 py-3 text-[12.5px]">
+          <Trash2 size={15} className="text-clay shrink-0" />
+          Se eliminó una compra
+          {eliminada !== "1" ? (
+            <>
+              {" del vale "}
+              <span className="font-mono">{eliminada}</span>
+            </>
+          ) : null}
+          {params.contacto === "1"
+            ? ". Su comprador salió del directorio por no tener nada más."
+            : "."}
+        </p>
+      ) : null}
       <form action="/panel/redenciones" className="flex flex-wrap items-end gap-3">
         {tiendaId ? (
           <input type="hidden" name="tienda" value={tiendaId} />
@@ -141,6 +162,7 @@ export default async function PaginaRedenciones({
                       {r.tienda}
                       {r.ticket ? ` · ticket ${r.ticket}` : ""} ·{" "}
                       {fechaHora(r.fecha_creacion)}
+                      {r.editada_por ? " · corregida" : ""}
                     </span>
                   </span>
                   <span className="flex flex-col items-end">
@@ -151,6 +173,18 @@ export default async function PaginaRedenciones({
                       −{moneda(r.descuento_aplicado)}
                     </span>
                   </span>
+
+                  {/* Corregir una compra mueve la venta del día: es del
+                      administrador, no de quien la capturó. */}
+                  {sesion.rol === "admin" ? (
+                    <Link
+                      href={`/panel/redenciones/${r.id}`}
+                      title="Corregir esta compra"
+                      className="border-ink/12 text-ink/45 hover:border-gold hover:text-ink rounded-field flex size-8 shrink-0 items-center justify-center border transition-colors"
+                    >
+                      <PencilLine size={14} />
+                    </Link>
+                  ) : null}
                 </li>
               ))}
             </ul>

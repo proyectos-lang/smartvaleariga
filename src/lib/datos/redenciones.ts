@@ -23,7 +23,12 @@ export type RedencionDetalle = {
   comprador_telefono: string;
   comprador_correo: string | null;
   tienda: string;
+  tienda_id: number;
   registrada_por: string;
+  comprador_id: number;
+  /** Nulo mientras nadie la haya corregido. */
+  editada_por: string | null;
+  fecha_edicion: string | null;
 };
 
 /**
@@ -36,11 +41,12 @@ function unico<T>(valor: T | T[] | null): T | null {
 
 const SELECCION = `
   id, monto_compra, monto_oro, monto_plata, descuento_aplicado, ticket, nota,
-  referido_por, fecha_creacion, vale_id,
+  referido_por, fecha_creacion, fecha_edicion, vale_id, tienda_id, contacto_id,
   vales!inner(codigo, usuario_id),
   contactos!inner(nombre, telefono, correo),
   tiendas!inner(nombre),
-  usuarios!inner(nombre)
+  usuarios!redenciones_usuario_id_fkey(nombre),
+  editor:usuarios!redenciones_editada_por_fkey(nombre)
 `;
 
 type FilaCruda = {
@@ -56,12 +62,16 @@ type FilaCruda = {
   nota: string | null;
   fecha_creacion: string;
   vale_id: number;
+  tienda_id: number;
+  contacto_id: number;
+  fecha_edicion: string | null;
   vales: { codigo: string; usuario_id: number } | { codigo: string; usuario_id: number }[];
   contactos:
     | { nombre: string; telefono: string; correo: string | null }
     | { nombre: string; telefono: string; correo: string | null }[];
   tiendas: { nombre: string } | { nombre: string }[];
-  usuarios: { nombre: string } | { nombre: string }[];
+  usuarios: { nombre: string } | { nombre: string }[] | null;
+  editor: { nombre: string } | { nombre: string }[] | null;
 };
 
 function normalizar(fila: FilaCruda): RedencionDetalle {
@@ -86,7 +96,11 @@ function normalizar(fila: FilaCruda): RedencionDetalle {
     comprador_telefono: contacto?.telefono ?? "",
     comprador_correo: contacto?.correo ?? null,
     tienda: tienda?.nombre ?? "",
+    tienda_id: fila.tienda_id,
     registrada_por: usuario?.nombre ?? "",
+    comprador_id: fila.contacto_id,
+    editada_por: unico(fila.editor)?.nombre ?? null,
+    fecha_edicion: fila.fecha_edicion,
   };
 }
 
@@ -169,4 +183,18 @@ export async function listarRedenciones({
     pagina,
     porPagina,
   };
+}
+
+/** Una compra concreta, para su pantalla de corrección. */
+export async function redencionPorId(
+  id: number,
+): Promise<RedencionDetalle | null> {
+  const { data, error } = await db()
+    .from("redenciones")
+    .select(SELECCION)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer la compra: ${error.message}`);
+  return data ? normalizar(data as unknown as FilaCruda) : null;
 }

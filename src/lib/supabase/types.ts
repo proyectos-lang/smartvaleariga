@@ -202,10 +202,13 @@ export type Database = {
           monto_oro: number;
           monto_plata: number;
           descuento_aplicado: number;
-          ticket: string;
+          ticket: string | null;
           nota: string | null;
           /** Quién le pasó el vale. Nulo = lo usó el propio portador. */
           referido_por: string | null;
+          /** Administrador que corrigió la compra. Nulo = tal como se capturó. */
+          editada_por: number | null;
+          fecha_edicion: string | null;
           fecha_creacion: string;
         };
         Insert: never;
@@ -593,6 +596,33 @@ export type Database = {
       fn_es_admin: {
         Args: { p_usuario_id: number };
         Returns: boolean;
+      };
+
+      fn_editar_redencion: {
+        Args: {
+          p_id: number;
+          p_usuario_id: number;
+          p_tienda_id: number;
+          p_nombre: string;
+          p_telefono: string;
+          p_correo?: string | null;
+          p_monto: number;
+          p_monto_oro?: number | null;
+          p_monto_plata?: number | null;
+          p_descuento?: number | null;
+          p_ticket?: string | null;
+          p_nota?: string | null;
+          p_referido_por?: string | null;
+        };
+        Returns: Database["smartvale"]["Tables"]["redenciones"]["Row"];
+      };
+
+      fn_eliminar_redencion: {
+        Args: { p_id: number; p_usuario_id: number };
+        Returns: {
+          vale_codigo: string;
+          contacto_borrado: boolean;
+        };
       };
 
       fn_asignar_rango: {
