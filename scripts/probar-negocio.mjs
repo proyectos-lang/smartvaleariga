@@ -779,6 +779,133 @@ async function probarCampanaCerrada() {
   }
 }
 
+async function probarCorregirCompras(vale) {
+  console.log("\nCorregir y eliminar compras");
+
+  const [admin] = await rest("usuarios?select=id&rol=eq.admin&activo=is.true&limit=1");
+
+  const compra = await rpc("fn_registrar_redencion", {
+    p_codigo: vale.codigo,
+    p_usuario_id: creado.usuarioId,
+    p_tienda_id: creado.tiendaId,
+    p_nombre: `Corregible ${MARCA}`,
+    p_telefono: "5218112347001",
+    p_correo: null,
+    p_monto: 1000,
+    p_monto_oro: 1000,
+    p_monto_plata: 0,
+  });
+  comprobar(
+    "la compra nace sin firma de corrección",
+    compra.editada_por === null && compra.fecha_edicion === null,
+  );
+
+  const base = {
+    p_id: compra.id,
+    p_tienda_id: creado.tiendaId,
+    p_nombre: `Corregible ${MARCA}`,
+    p_telefono: "5218112347001",
+    p_monto: 2000,
+    p_monto_oro: 2000,
+    p_monto_plata: 0,
+  };
+
+  await debeFallar(
+    "una vendedora no puede corregir",
+    rpc("fn_editar_redencion", { ...base, p_usuario_id: creado.usuarioId }),
+    "SV012",
+  );
+
+  await debeFallar(
+    "un reparto mayor que el total se rechaza al corregir",
+    rpc("fn_editar_redencion", {
+      ...base,
+      p_usuario_id: admin.id,
+      p_monto: 100,
+      p_monto_oro: 90,
+      p_monto_plata: 50,
+    }),
+    "SV006",
+  );
+
+  await debeFallar(
+    "un monto de cero se rechaza",
+    rpc("fn_editar_redencion", {
+      ...base,
+      p_usuario_id: admin.id,
+      p_monto: 0,
+      p_monto_oro: 0,
+    }),
+    "SV006",
+  );
+
+  const corregida = await rpc("fn_editar_redencion", {
+    ...base,
+    p_usuario_id: admin.id,
+  });
+  comprobar(
+    "el administrador corrige el monto",
+    Number(corregida.monto_compra) === 2000,
+    `quedó en ${corregida.monto_compra}`,
+  );
+  comprobar(
+    "sin descuento explícito se recalcula con la tarifa del vale",
+    Number(corregida.descuento_aplicado) ===
+      Math.round(2000 * Number(vale.descuento_oro_pct)) / 100,
+    `${corregida.descuento_aplicado} con ${vale.descuento_oro_pct}% de oro`,
+  );
+  comprobar(
+    "queda firmada la corrección",
+    corregida.editada_por === admin.id && corregida.fecha_edicion !== null,
+  );
+
+  // Corregir el teléfono mueve la compra a la persona correcta.
+  const movida = await rpc("fn_editar_redencion", {
+    ...base,
+    p_usuario_id: admin.id,
+    p_nombre: `Comprador real ${MARCA}`,
+    p_telefono: "5218112347002",
+  });
+  comprobar(
+    "cambiar el teléfono mueve la compra de persona",
+    movida.contacto_id !== compra.contacto_id,
+  );
+  const viejo = await rest(`contactos?select=id&id=eq.${compra.contacto_id}`);
+  comprobar(
+    "y el contacto anterior se va si no le quedaba nada",
+    viejo.length === 0,
+  );
+
+  await debeFallar(
+    "una vendedora no puede eliminar una compra",
+    rpc("fn_eliminar_redencion", {
+      p_id: compra.id,
+      p_usuario_id: creado.usuarioId,
+    }),
+    "SV012",
+  );
+
+  const resp = await rpc("fn_eliminar_redencion", {
+    p_id: compra.id,
+    p_usuario_id: admin.id,
+  });
+  const borrada = Array.isArray(resp) ? resp[0] : resp;
+  comprobar(
+    "el administrador elimina la compra",
+    borrada.vale_codigo === vale.codigo,
+    JSON.stringify(borrada),
+  );
+
+  const quedan = await rest(`redenciones?select=id&id=eq.${compra.id}`);
+  comprobar("ya no está en la base", quedan.length === 0);
+
+  await debeFallar(
+    "eliminar una que ya no existe se rechaza",
+    rpc("fn_eliminar_redencion", { p_id: compra.id, p_usuario_id: admin.id }),
+    "SV014",
+  );
+}
+
 async function probarRetirarVales(a1ConCompras, a2ConReferido) {
   console.log("\nAnular y eliminar");
 
@@ -1032,6 +1159,7 @@ try {
   await probarA4Referidos(a2);
   await probarAutorregistroA4(a1);
   await probarCampanaCerrada();
+  await probarCorregirCompras(a1);
   await probarRetirarVales(a1, a2);
   await probarAgotamiento();
   await probarConcurrencia();
