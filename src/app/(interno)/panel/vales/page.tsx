@@ -40,6 +40,14 @@ export default async function PaginaVales({
   const busqueda = typeof params.q === "string" ? params.q : "";
   const pagina = Number(params.pagina) || 1;
 
+  // Rango de emisión. Se acepta solo uno de los dos: «desde el 1 de agosto»
+  // y «hasta ayer» son preguntas legítimas por sí solas.
+  const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+  const crudoDesde = typeof params.desde === "string" ? params.desde.trim() : "";
+  const crudoHasta = typeof params.hasta === "string" ? params.hasta.trim() : "";
+  const desde = ES_FECHA.test(crudoDesde) ? crudoDesde : "";
+  const hasta = ES_FECHA.test(crudoHasta) ? crudoHasta : "";
+
   /*
    * Quién emitió. Solo lo aplica el administrador: una vendedora ya está
    * acotada a lo suyo por `alcanceDe`, y dejarle el parámetro solo serviría
@@ -63,6 +71,8 @@ export default async function PaginaVales({
       ESTADOS.includes(estado as EstadoVale) && estado !== "todos"
         ? (estado as EstadoVale)
         : undefined,
+    desde: desde || null,
+    hasta: hasta || null,
     busqueda,
     pagina,
   });
@@ -78,7 +88,7 @@ export default async function PaginaVales({
   /** Conserva los demás filtros al cambiar uno. */
   const enlace = (cambios: Record<string, string>) => {
     const q = new URLSearchParams();
-    const base = { tipo, estado, q: busqueda, emisora, ...cambios };
+    const base = { tipo, estado, q: busqueda, emisora, desde, hasta, ...cambios };
     for (const [k, v] of Object.entries(base)) {
       if (v && v !== "todos") q.set(k, v);
     }
@@ -147,6 +157,29 @@ export default async function PaginaVales({
           </label>
         ) : null}
 
+        {/* Rango de emisión: cuándo se entregó el vale, no cuándo se usó. */}
+        <label className="flex flex-col gap-[6px]">
+          <Rotulo>EMITIDOS DESDE</Rotulo>
+          <input
+            type="date"
+            name="desde"
+            defaultValue={desde}
+            max={hasta || undefined}
+            className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold border px-3 py-[10px] text-[12.5px] transition-colors outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-[6px]">
+          <Rotulo>HASTA</Rotulo>
+          <input
+            type="date"
+            name="hasta"
+            defaultValue={hasta}
+            min={desde || undefined}
+            className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold border px-3 py-[10px] text-[12.5px] transition-colors outline-none"
+          />
+        </label>
+
         <button
           type="submit"
           className="border-ink/16 text-ink/70 hover:border-gold hover:text-ink rounded-field cursor-pointer border px-4 py-[11px] text-[12px] font-medium transition-colors"
@@ -154,9 +187,9 @@ export default async function PaginaVales({
           Aplicar
         </button>
 
-        {busqueda || emisora ? (
+        {busqueda || emisora || desde || hasta ? (
           <Link
-            href={enlace({ q: "", emisora: "", pagina: "" })}
+            href={enlace({ q: "", emisora: "", desde: "", hasta: "", pagina: "" })}
             className="text-ink/45 hover:text-gold-dark flex items-center py-[11px] text-[12px] transition-colors"
           >
             Limpiar

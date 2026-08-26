@@ -255,16 +255,13 @@ export default async function PaginaVentas({
       </section>
 
       <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <h3 className="font-display m-0 text-lg leading-none font-normal">
-              Día a día
-            </h3>
-            <p className="text-ink/45 m-0 text-[12px]">
-              {medida === "venta" ? "Lo que entró cada día." : "Cuántas compras cada día."}
-            </p>
-          </div>
-          <Medidas medida={medida} enlace={enlace} />
+        <div className="flex flex-col gap-1">
+          <h3 className="font-display m-0 text-lg leading-none font-normal">
+            Día a día
+          </h3>
+          <p className="text-ink/45 m-0 text-[12px]">
+            Lo que entró cada día del periodo.
+          </p>
         </div>
 
         <ColumnasDia
@@ -279,19 +276,24 @@ export default async function PaginaVentas({
             rango.desde ?? resumen.primer_dia,
             rango.hasta ?? resumen.ultimo_dia,
           )}
-          medida={medida}
+          medida="venta"
         />
       </Tarjeta>
 
       <Tarjeta className="flex flex-col gap-5 p-5 sm:p-6">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-display m-0 text-lg leading-none font-normal">
-            Cuándo hay movimiento
-          </h3>
-          <p className="text-ink/45 m-0 text-[12px]">
-            {medida === "venta" ? "Venta" : "Compras"} por día de la semana y hora,
-            en horario de Guatemala. Cuanto más oscuro, más movimiento.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h3 className="font-display m-0 text-lg leading-none font-normal">
+              Cuándo hay movimiento
+            </h3>
+            <p className="text-ink/45 m-0 text-[12px]">
+              {medida === "venta" ? "Venta" : "Compras"} por día de la semana y
+              hora, en horario de Guatemala. Cuanto más oscuro, más movimiento.
+            </p>
+          </div>
+          {/* Aquí sí: ver el mapa por dinero o por número de compras responde
+              preguntas distintas —dónde entra más y cuándo hay más gente. */}
+          <Medidas medida={medida} enlace={enlace} />
         </div>
 
         <MapaCalor celdas={calor} medida={medida} />

@@ -24,6 +24,11 @@ export type DiaVenta = {
 
 const ALTO = 170;
 
+/** Solo el número: es lo que va debajo de cada columna. */
+function numeroDia(iso: string) {
+  return new Date(`${iso}T12:00:00Z`).getUTCDate();
+}
+
 function etiquetaDia(iso: string) {
   // Mediodía a propósito: `2026-08-20` a secas es medianoche UTC y en
   // Guatemala caería en el día anterior.
@@ -69,8 +74,12 @@ export function ColumnasDia({
   const formato = (v: number) =>
     medida === "venta" ? moneda(v) : `${v} ${v === 1 ? "compra" : "compras"}`;
 
-  // Con muchos días las columnas se estrechan; el hueco de 2px se mantiene.
-  const muchas = datos.length > 40;
+  /*
+   * Cada rótulo necesita unos 22 px para no tocar al vecino. Se calcula
+   * cuántos días caben y se salta el resto: es preferible enseñar uno de
+   * cada tres que apretar treinta números hasta que se solapen.
+   */
+  const paso = Math.max(1, Math.ceil(datos.length / 16));
 
   return (
     <div className="flex flex-col gap-2">
@@ -138,13 +147,38 @@ export function ColumnasDia({
         </div>
       </div>
 
-      {/* Fechas de los extremos: con treinta columnas no caben todas. */}
-      <div className="text-ink/35 flex justify-between pl-11 text-[9.5px]">
+      {/*
+        El eje X, alineado columna a columna: cada celda ocupa lo mismo que su
+        barra, así que el número cae debajo de la suya y no a ojo.
+
+        Con muchos días no caben todos los rótulos, así que se saltan de N en
+        N —nunca se encogen hasta ser ilegibles—. El primero y el último
+        siempre salen: son los que acotan el periodo.
+      */}
+      {/* El mismo `gap` que las columnas: sin él cada rótulo se desplaza dos
+          píxeles por columna y al final del eje señala al día equivocado. */}
+      <div className="flex gap-[2px] pl-11">
+        {datos.map((d, i) => {
+          const ultima = i === datos.length - 1;
+          const toca = i % paso === 0 || ultima;
+          // Se omite el penúltimo rótulo si va a chocar con el último.
+          const choca = !ultima && datos.length - 1 - i < paso / 2;
+
+          return (
+            <span
+              key={d.dia}
+              className="text-ink/35 min-w-0 flex-1 text-center text-[9.5px] tabular-nums"
+            >
+              {toca && !choca ? numeroDia(d.dia) : ""}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* El mes va aparte: repetirlo en cada columna sería ruido. */}
+      <div className="text-ink/30 flex justify-between pl-11 text-[9.5px]">
         <span>{etiquetaDia(datos[0].dia)}</span>
-        {muchas && datos.length > 2 ? (
-          <span>{etiquetaDia(datos[Math.floor(datos.length / 2)].dia)}</span>
-        ) : null}
-        <span>{etiquetaDia(datos[datos.length - 1].dia)}</span>
+        {datos.length > 1 ? <span>{etiquetaDia(datos[datos.length - 1].dia)}</span> : null}
       </div>
     </div>
   );

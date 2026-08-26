@@ -26,6 +26,11 @@ export type FiltroVales = {
   emisoraId?: number | "autorregistro";
   tipo?: TipoVale;
   estado?: EstadoVale;
+  /**
+   * Rango de emisión, en días locales (`AAAA-MM-DD`). Ambos inclusive.
+   */
+  desde?: string | null;
+  hasta?: string | null;
   /** Busca por código, nombre o teléfono del portador. */
   busqueda?: string;
   pagina?: number;
@@ -39,22 +44,47 @@ export type PaginaVales = {
   porPagina: number;
 };
 
+/**
+ * Un día local convertido al instante en que empieza, en UTC.
+ *
+ * Guatemala está a UTC−6 todo el año: no cambia la hora, así que el desfase
+ * es constante y la cuenta es exacta. Si algún día operara donde sí se
+ * cambia, esto habría que resolverlo en Postgres con `at time zone`, como
+ * hace el tablero de ventas.
+ */
+const DESFASE_GT = "06:00:00";
+
+function inicioDelDia(dia: string) {
+  return `${dia}T${DESFASE_GT}Z`;
+}
+
+function inicioDelDiaSiguiente(dia: string) {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return `${d.toISOString().slice(0, 10)}T${DESFASE_GT}Z`;
+}
+
 export async function listarVales({
   usuarioId = null,
   emisoraId,
   tipo,
   estado,
+  desde,
+  hasta,
   busqueda,
   pagina = 1,
   porPagina = 25,
 }: FiltroVales = {}): Promise<PaginaVales> {
-  const desde = (pagina - 1) * porPagina;
+  // `salto` y no `desde`: ese nombre lo ocupa ahora el inicio del rango de
+  // fechas, y confundir un desplazamiento de página con una fecha sería un
+  // error silencioso.
+  const salto = (pagina - 1) * porPagina;
 
   let consulta = db()
     .from("vw_vales_detalle")
     .select("*", { count: "exact" })
     .order("fecha_creacion", { ascending: false })
-    .range(desde, desde + porPagina - 1);
+    .range(salto, salto + porPagina - 1);
 
   if (usuarioId !== null) consulta = consulta.eq("usuario_id", usuarioId);
 
@@ -63,6 +93,10 @@ export async function listarVales({
 
   if (tipo) consulta = consulta.eq("tipo", tipo);
   if (estado) consulta = consulta.eq("estado", estado);
+
+  // El día «hasta» entra entero: se corta en el arranque del siguiente.
+  if (desde) consulta = consulta.gte("fecha_emision", inicioDelDia(desde));
+  if (hasta) consulta = consulta.lt("fecha_emision", inicioDelDiaSiguiente(hasta));
 
   if (busqueda?.trim()) {
     const t = busqueda.trim().replace(/[%,]/g, "");
