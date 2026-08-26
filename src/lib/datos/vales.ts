@@ -15,6 +15,15 @@ import type {
 export type FiltroVales = {
   /** `null` para ver todos: solo el administrador debe pasarlo. */
   usuarioId?: number | null;
+  /**
+   * Filtro por quién emitió, que es distinto del alcance por rol: aquel dice
+   * qué puede ver esta sesión, este qué quiere ver ahora mismo. Solo tiene
+   * sentido para el administrador; una vendedora ya está acotada a lo suyo.
+   *
+   * `autorregistro` son los vales que nacieron del QR de la tienda antes de
+   * que se pidiera la asesora, y que por eso no tienen a nadie detrás.
+   */
+  emisoraId?: number | "autorregistro";
   tipo?: TipoVale;
   estado?: EstadoVale;
   /** Busca por código, nombre o teléfono del portador. */
@@ -32,6 +41,7 @@ export type PaginaVales = {
 
 export async function listarVales({
   usuarioId = null,
+  emisoraId,
   tipo,
   estado,
   busqueda,
@@ -47,6 +57,10 @@ export async function listarVales({
     .range(desde, desde + porPagina - 1);
 
   if (usuarioId !== null) consulta = consulta.eq("usuario_id", usuarioId);
+
+  if (emisoraId === "autorregistro") consulta = consulta.is("usuario_id", null);
+  else if (emisoraId) consulta = consulta.eq("usuario_id", emisoraId);
+
   if (tipo) consulta = consulta.eq("tipo", tipo);
   if (estado) consulta = consulta.eq("estado", estado);
 
@@ -174,5 +188,53 @@ export async function cupoDe(usuarioId: number): Promise<{
     actual,
     restantes: bloques.reduce((suma, b) => suma + b.restantes, 0),
     sinRango: bloques.length === 0,
+  };
+}
+
+/**
+ * Quiénes han emitido algún vale, para poblar el filtro.
+ *
+ * Se saca de los vales y no de la tabla de cuentas: ofrecer diecisiete
+ * vendedoras cuando solo cinco han emitido convierte el desplegable en una
+ * lista de resultados vacíos. Se incluye a las cuentas inactivas que sí
+ * emitieron —su historial sigue ahí— y una entrada para el autorregistro.
+ */
+export async function emisorasConVales(): Promise<{
+  emisoras: { id: number; nombre: string; vales: number }[];
+  autorregistro: number;
+}> {
+  const { data, error } = await db()
+    .from("vw_vales_detalle")
+    .select("usuario_id, emisora")
+    .limit(20000);
+
+  if (error) {
+    throw new Error(`No se pudieron leer las emisoras: ${error.message}`);
+  }
+
+  const cuenta = new Map<number, { id: number; nombre: string; vales: number }>();
+  let autorregistro = 0;
+
+  for (const fila of data ?? []) {
+    if (fila.usuario_id === null) {
+      autorregistro++;
+      continue;
+    }
+    const previo = cuenta.get(fila.usuario_id);
+    if (previo) previo.vales++;
+    else {
+      cuenta.set(fila.usuario_id, {
+        id: fila.usuario_id,
+        nombre: fila.emisora ?? `Cuenta ${fila.usuario_id}`,
+        vales: 1,
+      });
+    }
+  }
+
+  return {
+    emisoras: [...cuenta.values()].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es"),
+    ),
+    autorregistro,
   };
 }

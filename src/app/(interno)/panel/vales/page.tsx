@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { Trash2 } from "lucide-react";
 
 import { ChipEstado } from "@/components/ui/chip-estado";
+import { Rotulo } from "@/components/ui/campo";
 import { Tarjeta } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
 import { ChipTipo } from "@/components/vales/chip-tipo";
 import { alcanceDe, requerirSesion } from "@/lib/auth/guardas";
-import { listarVales } from "@/lib/datos/vales";
+import { emisorasConVales, listarVales } from "@/lib/datos/vales";
 import { fecha, monedaCorta } from "@/lib/format";
 import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 
@@ -39,8 +40,22 @@ export default async function PaginaVales({
   const busqueda = typeof params.q === "string" ? params.q : "";
   const pagina = Number(params.pagina) || 1;
 
+  /*
+   * Quién emitió. Solo lo aplica el administrador: una vendedora ya está
+   * acotada a lo suyo por `alcanceDe`, y dejarle el parámetro solo serviría
+   * para pedir los vales de otra y recibir una lista vacía.
+   */
+  const emisora =
+    sesion.rol === "admin" && typeof params.emisora === "string"
+      ? params.emisora
+      : "";
+
   const { vales, total, porPagina } = await listarVales({
     usuarioId: alcanceDe(sesion),
+    emisoraId:
+      emisora === "autorregistro"
+        ? "autorregistro"
+        : Number(emisora) || undefined,
     tipo: TIPOS.includes(tipo as TipoVale) && tipo !== "todos"
       ? (tipo as TipoVale)
       : undefined,
@@ -52,12 +67,18 @@ export default async function PaginaVales({
     pagina,
   });
 
+  // Solo se consulta para el administrador: es el único que ve el filtro.
+  const quienesEmiten =
+    sesion.rol === "admin"
+      ? await emisorasConVales()
+      : { emisoras: [], autorregistro: 0 };
+
   const paginas = Math.max(1, Math.ceil(total / porPagina));
 
   /** Conserva los demás filtros al cambiar uno. */
   const enlace = (cambios: Record<string, string>) => {
     const q = new URLSearchParams();
-    const base = { tipo, estado, q: busqueda, ...cambios };
+    const base = { tipo, estado, q: busqueda, emisora, ...cambios };
     for (const [k, v] of Object.entries(base)) {
       if (v && v !== "todos") q.set(k, v);
     }
@@ -88,19 +109,59 @@ export default async function PaginaVales({
         {estado !== "todos" ? (
           <input type="hidden" name="estado" value={estado} />
         ) : null}
-        <input
-          type="search"
-          name="q"
-          defaultValue={busqueda}
-          placeholder="Buscar por código, nombre o teléfono…"
-          className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold min-w-0 flex-1 border px-4 py-[11px] text-[13px] transition-colors outline-none sm:max-w-sm"
-        />
+
+        <label className="flex min-w-[220px] flex-1 flex-col gap-[6px] sm:max-w-sm">
+          <Rotulo>BUSCAR</Rotulo>
+          <input
+            type="search"
+            name="q"
+            defaultValue={busqueda}
+            placeholder="Código, nombre o teléfono…"
+            className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold w-full border px-4 py-[11px] text-[13px] transition-colors outline-none"
+          />
+        </label>
+
+        {/* Quién emitió. Va como desplegable y no como fila de chips: con
+            diecisiete vendedoras la fila ocuparía media pantalla. Solo lo ve
+            el administrador; una vendedora ya está acotada a lo suyo. */}
+        {sesion.rol === "admin" && quienesEmiten.emisoras.length > 0 ? (
+          <label className="flex min-w-[240px] flex-col gap-[6px]">
+            <Rotulo>QUIÉN LO EMITIÓ</Rotulo>
+            <select
+              name="emisora"
+              defaultValue={emisora}
+              className="border-ink/12 bg-paper text-ink rounded-field focus:border-gold w-full cursor-pointer appearance-none border bg-[length:9px] bg-[right_12px_center] bg-no-repeat px-4 py-[11px] pr-9 text-[13px] transition-colors outline-none bg-[image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 6%22><path d=%22M1 1l4 4 4-4%22 fill=%22none%22 stroke=%22%230B0B0C%22 stroke-opacity=%22.45%22 stroke-width=%221.5%22/></svg>')]"
+            >
+              <option value="">Todas las vendedoras</option>
+              {quienesEmiten.emisoras.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.nombre} · {e.vales}
+                </option>
+              ))}
+              {quienesEmiten.autorregistro > 0 ? (
+                <option value="autorregistro">
+                  Autorregistro · {quienesEmiten.autorregistro}
+                </option>
+              ) : null}
+            </select>
+          </label>
+        ) : null}
+
         <button
           type="submit"
           className="border-ink/16 text-ink/70 hover:border-gold hover:text-ink rounded-field cursor-pointer border px-4 py-[11px] text-[12px] font-medium transition-colors"
         >
-          Buscar
+          Aplicar
         </button>
+
+        {busqueda || emisora ? (
+          <Link
+            href={enlace({ q: "", emisora: "", pagina: "" })}
+            className="text-ink/45 hover:text-gold-dark flex items-center py-[11px] text-[12px] transition-colors"
+          >
+            Limpiar
+          </Link>
+        ) : null}
       </form>
 
       <div className="flex flex-wrap gap-4">
