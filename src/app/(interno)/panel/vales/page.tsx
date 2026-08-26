@@ -4,12 +4,12 @@ import { Trash2 } from "lucide-react";
 
 import { ChipEstado } from "@/components/ui/chip-estado";
 import { Rotulo } from "@/components/ui/campo";
-import { Tarjeta } from "@/components/ui/tarjeta";
+import { Tarjeta, TarjetaIndicador } from "@/components/ui/tarjeta";
 import { Vacio } from "@/components/ui/vacio";
 import { ChipTipo } from "@/components/vales/chip-tipo";
 import { alcanceDe, requerirSesion } from "@/lib/auth/guardas";
-import { emisorasConVales, listarVales } from "@/lib/datos/vales";
-import { fecha, monedaCorta } from "@/lib/format";
+import { emisorasConVales, listarVales, totalVales } from "@/lib/datos/vales";
+import { fecha, monedaCorta, numero } from "@/lib/format";
 import type { EstadoVale, TipoVale } from "@/lib/supabase/types";
 
 export const metadata: Metadata = { title: "Vales" };
@@ -77,11 +77,23 @@ export default async function PaginaVales({
     pagina,
   });
 
-  // Solo se consulta para el administrador: es el único que ve el filtro.
-  const quienesEmiten =
+  /*
+   * Hay filtro si alguno acota la lista. Los chips cuentan igual que el
+   * formulario: para quien mira, «solo los A2 vencidos» es tan filtro como
+   * haber escrito un teléfono.
+   */
+  const hayFiltro = Boolean(
+    busqueda || emisora || desde || hasta || tipo !== "todos" || estado !== "todos",
+  );
+
+  const [quienesEmiten, totalGeneral] = await Promise.all([
+    // Solo se consulta para el administrador: es el único que ve el filtro.
     sesion.rol === "admin"
-      ? await emisorasConVales()
-      : { emisoras: [], autorregistro: 0 };
+      ? emisorasConVales()
+      : Promise.resolve({ emisoras: [], autorregistro: 0 }),
+    // Sin filtros el denominador ya está a la vista: es la misma cifra.
+    hayFiltro ? totalVales(alcanceDe(sesion)) : Promise.resolve(total),
+  ]);
 
   const paginas = Math.max(1, Math.ceil(total / porPagina));
 
@@ -231,16 +243,31 @@ export default async function PaginaVales({
         </div>
       </div>
 
+      {/*
+        La cuenta va aquí y no arriba del todo: entre los filtros y la lista
+        se lee como su consecuencia —esto pediste, esto hay— y no como una
+        cifra de cabecera que uno tiene que atar a mano con lo de abajo.
+      */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <TarjetaIndicador
+          etiqueta={hayFiltro ? "VALES QUE COINCIDEN" : "VALES EMITIDOS"}
+          valor={numero(total)}
+          nota={
+            hayFiltro
+              ? `De ${numero(totalGeneral)} emitidos`
+              : sesion.rol === "admin"
+                ? "En toda la campaña"
+                : "Emitidos por ti"
+          }
+        />
+      </section>
+
       <Tarjeta className="overflow-hidden">
         {vales.length === 0 ? (
           <Vacio
-            titulo={
-              busqueda || tipo !== "todos" || estado !== "todos"
-                ? "Ningún vale coincide"
-                : "Todavía no hay vales"
-            }
+            titulo={hayFiltro ? "Ningún vale coincide" : "Todavía no hay vales"}
             descripcion={
-              busqueda || tipo !== "todos" || estado !== "todos"
+              hayFiltro
                 ? "Prueba con otros filtros o limpia la búsqueda."
                 : "El primero que emitas aparecerá aquí."
             }

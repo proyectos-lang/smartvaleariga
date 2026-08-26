@@ -26,6 +26,13 @@ const MONEDA = "GTQ";
  * Guatemala no cambia de hora, pero eso no es lo que arregla el problema:
  * lo que lo arregla es no depender de dónde corra el proceso.
  */
+const ENTERO = new Intl.NumberFormat(REGION, { maximumFractionDigits: 0 });
+
+/** Un entero con separador de miles: «1,240» y no «1240». */
+export function numero(valor: number) {
+  return ENTERO.format(valor);
+}
+
 export const ZONA = "America/Guatemala";
 
 /** Q 12,400.00 — importe exacto. */

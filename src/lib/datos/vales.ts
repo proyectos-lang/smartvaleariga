@@ -116,6 +116,26 @@ export async function listarVales({
   };
 }
 
+/**
+ * Cuántos vales alcanza esta sesión, sin ningún filtro puesto.
+ *
+ * Es el denominador de la tarjeta del listado: «412» no dice nada, «412 de
+ * 1,240» dice qué tan estrecho es el filtro. Solo acota por rol, así que no
+ * comparte lógica con `listarVales` ni puede desincronizarse de ella cuando
+ * mañana aparezca un filtro nuevo.
+ */
+export async function totalVales(usuarioId: number | null): Promise<number> {
+  let consulta = db()
+    .from("vw_vales_detalle")
+    .select("id", { count: "exact", head: true });
+
+  if (usuarioId !== null) consulta = consulta.eq("usuario_id", usuarioId);
+
+  const { count, error } = await consulta;
+  if (error) throw new Error(`No se pudieron contar los vales: ${error.message}`);
+  return count ?? 0;
+}
+
 /** Un vale por su código. Devuelve `null` si no existe. */
 export async function valePorCodigo(codigo: string): Promise<ValeDetalle | null> {
   const { data, error } = await db()
