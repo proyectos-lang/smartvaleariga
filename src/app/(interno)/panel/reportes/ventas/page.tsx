@@ -71,6 +71,37 @@ function rangoDelAtajo(atajo: string): { desde: string | null; hasta: string | n
 
 const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * Rellena con ceros los días sin venta.
+ *
+ * `fn_ventas_por_dia` solo devuelve los días que tuvieron algo, así que sin
+ * esto las columnas quedan pegadas y un lunes cerrado desaparece: la gráfica
+ * enseñaría el 14 seguido del 18 como si fueran días consecutivos. Un día a
+ * cero es información —la tienda no vendió—, no un hueco que se salta.
+ *
+ * Se acota a un año: más allá, una columna por día deja de leerse y solo
+ * añadiría miles de barras de un píxel.
+ */
+function conDiasVacios(
+  filas: { dia: string; tickets: number; venta: number }[],
+  desde: string | null,
+  hasta: string | null,
+) {
+  if (!desde || !hasta || filas.length === 0) return filas;
+
+  const dias: { dia: string; tickets: number; venta: number }[] = [];
+  const porDia = new Map(filas.map((f) => [f.dia, f]));
+
+  let cursor = desde;
+  for (let i = 0; i < 366 && cursor <= hasta; i++) {
+    dias.push(porDia.get(cursor) ?? { dia: cursor, tickets: 0, venta: 0 });
+    cursor = sumarDias(cursor, 1);
+  }
+
+  // Si el rango pasaba del año, más vale enseñar lo que hay que recortarlo.
+  return cursor <= hasta ? filas : dias;
+}
+
 function texto(v: string | string[] | undefined) {
   return typeof v === "string" ? v.trim() : "";
 }
@@ -237,11 +268,17 @@ export default async function PaginaVentas({
         </div>
 
         <ColumnasDia
-          datos={porDia.map((d) => ({
-            dia: d.dia,
-            venta: Number(d.venta),
-            tickets: d.tickets,
-          }))}
+          datos={conDiasVacios(
+            porDia.map((d) => ({
+              dia: d.dia,
+              venta: Number(d.venta),
+              tickets: d.tickets,
+            })),
+            // Sin rango explícito se usa el primer y último día con venta:
+            // rellenar «todo» hasta hoy dibujaría meses vacíos por delante.
+            rango.desde ?? resumen.primer_dia,
+            rango.hasta ?? resumen.ultimo_dia,
+          )}
           medida={medida}
         />
       </Tarjeta>

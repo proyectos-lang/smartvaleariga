@@ -1,11 +1,13 @@
-"use client";
-
 import Link from "next/link";
 
 import { Rotulo } from "@/components/ui/campo";
 
 /**
  * Rango y acotaciones del tablero de ventas.
+ *
+ * Se queda en el servidor: no tiene estado ni manejadores —los atajos son
+ * enlaces y el rango a medida un formulario GET—, y siendo de cliente no
+ * podría recibir el constructor de URL que arma la página.
  *
  * Los atajos son enlaces y el rango a medida un formulario: lo primero es un
  * clic —«los últimos 7 días» es la pregunta de todos los lunes— y lo segundo

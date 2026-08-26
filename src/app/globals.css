@@ -45,25 +45,6 @@
   --color-serie-a3-texto: #7e2e1b;
   --color-serie-a4-texto: #0c604d;
 
-  /* ── Rampa secuencial ─────────────────────────────────────────────────
-     Un solo tono, de claro a oscuro, para magnitud: cuánto, no cuál. La
-     usa el mapa de calor de ventas.
-
-     Empieza en 2.10:1 sobre el papel y no más claro: los pasos por encima
-     de esa luminosidad no se distinguían del fondo, y una celda invisible
-     no dice «poco», dice «no sé». El blanco queda libre para la celda sin
-     movimiento, que así se lee como ausencia y no como valor mínimo.
-
-     Luminosidad estrictamente decreciente, comprobada. Al cambiar un paso
-     hay que volver a comprobarlo: el orden de luminosidad ES la escala. */
-  --calor-1: #cfaf6d;
-  --calor-2: #c09c52;
-  --calor-3: #b08a3e;
-  --calor-4: #9e782f;
-  --calor-5: #8b6725;
-  --calor-6: #75561c;
-  --calor-7: #5e4315;
-
   /* Cromo de las gráficas: retrocede, nunca compite con los datos. */
   --color-rejilla: #e7e3da;
   --color-eje: #cdc7bb;
@@ -99,6 +80,33 @@
       transform: none;
     }
   }
+}
+
+/*
+ * Fuera de `@theme` a propósito: Tailwind v4 poda de ahí las variables que no
+ * ve usadas en un nombre de clase, y estas se consumen en `style` en línea
+ * desde el mapa de calor. Dentro del bloque de tema desaparecían del CSS
+ * construido y las celdas salían en blanco.
+ */
+:root {
+/* ── Rampa secuencial ─────────────────────────────────────────────────
+   Un solo tono, de claro a oscuro, para magnitud: cuánto, no cuál. La
+   usa el mapa de calor de ventas.
+
+   Empieza en 2.10:1 sobre el papel y no más claro: los pasos por encima
+   de esa luminosidad no se distinguían del fondo, y una celda invisible
+   no dice «poco», dice «no sé». El blanco queda libre para la celda sin
+   movimiento, que así se lee como ausencia y no como valor mínimo.
+
+   Luminosidad estrictamente decreciente, comprobada. Al cambiar un paso
+   hay que volver a comprobarlo: el orden de luminosidad ES la escala. */
+  --calor-1: #cfaf6d;
+  --calor-2: #c09c52;
+  --calor-3: #b08a3e;
+  --calor-4: #9e782f;
+  --calor-5: #8b6725;
+  --calor-6: #75561c;
+  --calor-7: #5e4315;
 }
 
 @layer base {
