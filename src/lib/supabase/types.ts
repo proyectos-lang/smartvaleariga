@@ -14,6 +14,14 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+/** Los cuatro filtros del tablero de ventas. */
+type VentasArgs = {
+  p_desde?: string | null;
+  p_hasta?: string | null;
+  p_tienda_id?: number | null;
+  p_usuario_id?: number | null;
+};
+
 export type Database = {
   smartvale: {
     Tables: {
@@ -596,6 +604,70 @@ export type Database = {
       fn_es_admin: {
         Args: { p_usuario_id: number };
         Returns: boolean;
+      };
+
+      /* ── Tablero de ventas ───────────────────────────────────────────────
+         Las cinco comparten los mismos cuatro filtros; las fechas van como
+         `AAAA-MM-DD` y se comparan contra el día LOCAL de cada compra. */
+
+      fn_ventas_resumen: {
+        Args: VentasArgs;
+        Returns: {
+          tickets: number;
+          venta: number;
+          descuento: number;
+          venta_oro: number;
+          venta_plata: number;
+          venta_otros: number;
+          ticket_promedio: number | null;
+          clientes: number;
+          vales_usados: number;
+          primer_dia: string | null;
+          ultimo_dia: string | null;
+        }[];
+      };
+
+      fn_ventas_por_dia: {
+        Args: VentasArgs;
+        Returns: {
+          dia: string;
+          tickets: number;
+          venta: number;
+          descuento: number;
+        }[];
+      };
+
+      fn_ventas_por_vendedora: {
+        Args: VentasArgs;
+        Returns: {
+          usuario_id: number;
+          vendedora: string;
+          tickets: number;
+          venta: number;
+          ticket_promedio: number | null;
+        }[];
+      };
+
+      fn_ventas_por_tienda: {
+        Args: VentasArgs;
+        Returns: {
+          tienda_id: number;
+          tienda: string;
+          tickets: number;
+          venta: number;
+          ticket_promedio: number | null;
+        }[];
+      };
+
+      fn_ventas_mapa_calor: {
+        Args: VentasArgs;
+        Returns: {
+          /** 0 = domingo, como `extract(dow)` en Postgres. */
+          dia_semana: number;
+          hora: number;
+          tickets: number;
+          venta: number;
+        }[];
       };
 
       fn_editar_redencion: {

@@ -6,6 +6,7 @@ import { Vacio } from "@/components/ui/vacio";
 import { Barras } from "@/components/reportes/barras";
 import { DesempenoVendedoras } from "@/components/reportes/desempeno-vendedoras";
 import { Medidor } from "@/components/reportes/medidor";
+import { PestanasReportes } from "@/components/reportes/pestanas";
 import { SerieTiempo } from "@/components/reportes/serie-tiempo";
 import { PuntoTipo } from "@/components/vales/chip-tipo";
 import { requerirAdmin } from "@/lib/auth/guardas";
@@ -77,6 +78,8 @@ export default async function PaginaReportes({
 
   return (
     <>
+      <PestanasReportes activa="/panel/reportes" />
+
       <div className="flex justify-end">
         <a
           href="/api/reportes/excel"
