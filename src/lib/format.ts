@@ -81,6 +81,27 @@ const FECHA_HORA = new Intl.DateTimeFormat(REGION, {
 });
 
 /** 12 sep 2026 — siempre en hora de Guatemala, corra donde corra. */
+/**
+ * Un instante listo para escribirlo en una celda de Excel.
+ *
+ * ExcelJS guarda el número de serie de la fecha en **UTC**, y Excel lo
+ * enseña tal cual: sin esto, una compra de las 19:30 del 1 de septiembre en
+ * Guatemala aparece en el archivo como el 2 de septiembre —está a UTC−6, así
+ * que todo lo que pasa después de las 18:00 se corre al día siguiente—. Quien
+ * agrupe por día en el Excel obtiene otros totales que los del tablero, y
+ * ninguno de los dos parece equivocado.
+ *
+ * El arreglo es desplazar el instante para que su lectura en UTC coincida
+ * con la hora local. La celda deja de representar un instante absoluto y pasa
+ * a representar «la hora que marcaba el reloj en la tienda», que es lo que
+ * quien abre el archivo espera leer.
+ */
+export function fechaExcel(valor: Date | string) {
+  const d = new Date(valor);
+  // −6 fijo: Guatemala no cambia la hora en todo el año.
+  return new Date(d.getTime() - 6 * 60 * 60 * 1000);
+}
+
 export function fecha(valor: Date | string) {
   return FECHA.format(new Date(valor));
 }

@@ -5,6 +5,7 @@ import { requerirAdmin } from "@/lib/auth/guardas";
 import { desempenoVendedoras } from "@/lib/datos/metricas";
 import { listarRedenciones } from "@/lib/datos/redenciones";
 import { listarVales } from "@/lib/datos/vales";
+import { fechaExcel } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
@@ -27,6 +28,10 @@ type Columna = { header: string; key: string; width: number; formato?: string };
 
 const MONEDA = '"Q" #,##0.00';
 const PORCENTAJE = "0.0";
+// Declarados y no heredados de la región del equipo: el mismo archivo abierto
+// en dos computadoras tiene que decir el mismo día.
+const FECHA = "dd/mm/yyyy";
+const FECHA_HORA = "dd/mm/yyyy hh:mm";
 
 function hoja(
   libro: ExcelJS.Workbook,
@@ -149,8 +154,8 @@ export async function GET() {
       { header: "Personas que trajo", key: "referidos", width: 18 },
       { header: "% oro", key: "descuentoOro", width: 10, formato: PORCENTAJE },
       { header: "% plata", key: "descuentoPlata", width: 10, formato: PORCENTAJE },
-      { header: "Emisión", key: "emision", width: 20 },
-      { header: "Vencimiento", key: "vencimiento", width: 20 },
+      { header: "Emisión", key: "emision", width: 20, formato: FECHA_HORA },
+      { header: "Vencimiento", key: "vencimiento", width: 20, formato: FECHA },
       { header: "Estado", key: "estado", width: 12 },
       { header: "Compras", key: "compras", width: 10 },
       { header: "Venta generada", key: "ingreso", width: 17, formato: MONEDA },
@@ -173,8 +178,8 @@ export async function GET() {
       referidos: v.referidos,
       descuentoOro: Number(v.descuento_oro_pct),
       descuentoPlata: Number(v.descuento_plata_pct),
-      emision: new Date(v.fecha_emision),
-      vencimiento: new Date(v.fecha_vencimiento),
+      emision: fechaExcel(v.fecha_emision),
+      vencimiento: fechaExcel(v.fecha_vencimiento),
       estado: v.estado,
       compras: v.total_redenciones,
       ingreso: Number(v.ingreso_generado),
@@ -189,7 +194,7 @@ export async function GET() {
     libro,
     "Redenciones",
     [
-      { header: "Fecha", key: "fecha", width: 20 },
+      { header: "Fecha", key: "fecha", width: 20, formato: FECHA_HORA },
       { header: "Vale", key: "codigo", width: 16 },
       { header: "Comprador", key: "comprador", width: 26 },
       { header: "Teléfono", key: "telefono", width: 16 },
@@ -205,7 +210,7 @@ export async function GET() {
       { header: "Nota", key: "nota", width: 30 },
     ],
     redenciones.redenciones.map((r) => ({
-      fecha: new Date(r.fecha_creacion),
+      fecha: fechaExcel(r.fecha_creacion),
       codigo: r.codigo,
       comprador: r.comprador,
       telefono: r.comprador_telefono,

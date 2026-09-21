@@ -8,6 +8,7 @@ import {
   type FiltroContactos,
   type OrdenContactos,
 } from "@/lib/datos/contactos";
+import { fechaExcel } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO, type TipoVale } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
@@ -28,6 +29,9 @@ export const runtime = "nodejs";
  */
 
 const MONEDA = '"Q" #,##0.00';
+// Declarado y no heredado de la región del equipo, y en hora de Guatemala:
+// ver `fechaExcel`.
+const FECHA = "dd/mm/yyyy";
 
 export async function GET(request: NextRequest) {
   await requerirAdmin();
@@ -80,10 +84,10 @@ export async function GET(request: NextRequest) {
     { header: "En oro", key: "oro", width: 14, formato: MONEDA },
     { header: "En plata", key: "plata", width: 14, formato: MONEDA },
     { header: "Descuento recibido", key: "ahorrado", width: 19, formato: MONEDA },
-    { header: "Última compra", key: "ultima", width: 20 },
+    { header: "Última compra", key: "ultima", width: 20, formato: FECHA },
     { header: "Compró en", key: "tiendaCompra", width: 20 },
     { header: "Personas que trajo", key: "referidos", width: 18 },
-    { header: "Alta", key: "alta", width: 20 },
+    { header: "Alta", key: "alta", width: 20, formato: FECHA },
   ];
 
   hoja.columns = columnas.map((c) => ({
@@ -123,10 +127,10 @@ export async function GET(request: NextRequest) {
       oro: Number(c.gastado_oro),
       plata: Number(c.gastado_plata),
       ahorrado: Number(c.ahorrado),
-      ultima: c.ultima_compra ? new Date(c.ultima_compra) : null,
+      ultima: c.ultima_compra ? fechaExcel(c.ultima_compra) : null,
       tiendaCompra: c.tienda_compra ?? "",
       referidos: c.referidos,
-      alta: new Date(c.fecha_alta),
+      alta: fechaExcel(c.fecha_alta),
     });
   }
 
