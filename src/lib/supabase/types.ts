@@ -656,6 +656,9 @@ export type Database = {
           tickets: number;
           venta: number;
           ticket_promedio: number | null;
+          comision: number;
+          neta: number;
+          clientes: number;
         }[];
       };
 

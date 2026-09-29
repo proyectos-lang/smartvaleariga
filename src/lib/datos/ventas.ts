@@ -52,8 +52,14 @@ export type VentaPorTienda = {
   tienda_id: number;
   tienda: string;
   tickets: number;
+  /** Precio de lista: el descuento del vale se calcula sobre esta cifra. */
   venta: number;
   ticket_promedio: number | null;
+  /** El descuento otorgado: lo que la clienta dejó de pagar. */
+  comision: number;
+  /** Lo que entró en caja: `venta - comision`. */
+  neta: number;
+  clientes: number;
 };
 
 export type CeldaCalor = {
