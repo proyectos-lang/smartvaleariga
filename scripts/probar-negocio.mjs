@@ -123,6 +123,12 @@ async function limpiar() {
     await rest(`vales?id=in.(${ids})`, { method: "DELETE" });
   }
 
+  // Antes que el usuario y la tienda: las ventas apuntan a los dos y la
+  // clave foránea impediría borrarlos.
+  await rest(`ventas_normales?usuario_id=eq.${creado.usuarioId}`, {
+    method: "DELETE",
+  });
+
   await rest(`rangos?usuario_id=eq.${creado.usuarioId}`, { method: "DELETE" });
   await rest(`contactos?nombre=like.*${MARCA}*`, { method: "DELETE" });
   await rest(`usuarios?id=eq.${creado.usuarioId}`, { method: "DELETE" });
@@ -1150,6 +1156,92 @@ async function probarConcurrencia() {
 
 console.log(`\nARIGA SMART VALE · pruebas de negocio\n${url}`);
 
+/* ── Venta sin vale ──────────────────────────────────────────────────── */
+
+async function probarVentasNormales() {
+  console.log("\nVenta sin vale");
+
+  const id = await rpc("fn_registrar_venta_normal", {
+    p_usuario_id: creado.usuarioId,
+    p_tienda_id: creado.tiendaId,
+    p_monto: 1000,
+    p_oro: 600,
+    p_plata: 300,
+    p_ticket: MARCA,
+    p_nota: null,
+  });
+  comprobar("se registra una venta sin vale", typeof id === "number" && id > 0);
+
+  const [v] = await rest(`vw_ventas_normales?select=*&id=eq.${id}`);
+  comprobar("guarda el monto y el reparto", Number(v.monto) === 1000
+    && Number(v.monto_oro) === 600 && Number(v.monto_plata) === 300);
+  comprobar("no crea contacto: la venta es anónima", !("contacto_id" in v));
+
+  // El día tiene que ser el de Guatemala, no el de UTC.
+  const diaGt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Guatemala",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(v.fecha_creacion));
+  comprobar("el día va en horario de Guatemala", v.dia === diaGt,
+    `vista ${v.dia} · esperado ${diaGt}`);
+
+  await debeFallar(
+    "rechaza que oro y plata pasen del total",
+    rpc("fn_registrar_venta_normal", {
+      p_usuario_id: creado.usuarioId, p_tienda_id: creado.tiendaId,
+      p_monto: 100, p_oro: 80, p_plata: 50, p_ticket: null, p_nota: null,
+    }),
+    "SV006",
+  );
+
+  await debeFallar(
+    "rechaza monto cero o negativo",
+    rpc("fn_registrar_venta_normal", {
+      p_usuario_id: creado.usuarioId, p_tienda_id: creado.tiendaId,
+      p_monto: 0, p_oro: 0, p_plata: 0, p_ticket: null, p_nota: null,
+    }),
+    "SV006",
+  );
+
+  await debeFallar(
+    "solo un administrador edita",
+    rpc("fn_editar_venta_normal", {
+      p_id: id, p_usuario_id: creado.usuarioId, p_tienda_id: creado.tiendaId,
+      p_monto: 500, p_oro: 0, p_plata: 0, p_ticket: null, p_nota: null,
+    }),
+    "SV012",
+  );
+
+  await debeFallar(
+    "solo un administrador elimina",
+    rpc("fn_eliminar_venta_normal", {
+      p_id: id, p_usuario_id: creado.usuarioId,
+    }),
+    "SV012",
+  );
+
+  // El reporte tiene que ver esta venta y cuadrar el gran total.
+  const filas = await rpc("fn_ventas_por_tienda", {
+    p_desde: null, p_hasta: null,
+    p_tienda_id: creado.tiendaId, p_usuario_id: null,
+  });
+  const fila = filas.find((f) => f.tienda_id === creado.tiendaId);
+  comprobar("el reporte por tienda ve la venta sin vale",
+    fila && Number(fila.venta_normal) === 1000);
+  comprobar("el gran total es neto con vales más venta sin vale",
+    fila && Math.abs(Number(fila.gran_total)
+      - (Number(fila.neta) + Number(fila.venta_normal))) < 0.01,
+    fila ? `gran ${fila.gran_total} · neta ${fila.neta} + normal ${fila.venta_normal}` : "sin fila");
+
+  const [resumen] = await rpc("fn_ventas_normales_resumen", {
+    p_desde: null, p_hasta: null,
+    p_tienda_id: creado.tiendaId, p_usuario_id: null,
+  });
+  comprobar("el resumen separa oro, plata y otras piezas",
+    Number(resumen.monto_oro) === 600 && Number(resumen.monto_plata) === 300
+    && Number(resumen.monto_otros) === 100);
+}
+
 try {
   await preparar();
   const { a1, a2 } = await probarEmision();
@@ -1162,6 +1254,7 @@ try {
   await probarCorregirCompras(a1);
   await probarRetirarVales(a1, a2);
   await probarAgotamiento();
+  await probarVentasNormales();
   await probarConcurrencia();
 } catch (e) {
   console.error(`\nError inesperado: ${e.message}`);

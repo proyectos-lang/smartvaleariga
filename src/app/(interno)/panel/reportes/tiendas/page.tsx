@@ -17,16 +17,21 @@ export const metadata: Metadata = { title: "Reporte por tienda" };
  *
  * Las otras dos pestañas responden preguntas comerciales —qué puerta trae
  * mejor gente, a qué hora hay movimiento—. Esta responde una contable: cuánto
- * vendió cada tienda, cuánto de eso se fue en descuento y cuánto entró en
- * caja. Por eso es una tabla y no una gráfica: son cifras que se leen al
- * centavo y se suman, no formas que se comparan de un vistazo.
+ * vendió cada tienda por cada vía y cuánto entró en caja en total. Por eso es
+ * una tabla y no una gráfica: son cifras que se leen al centavo y se suman,
+ * no formas que se comparan de un vistazo.
  *
- *   Bruta    `monto_compra`        el precio de lista de lo vendido
- *   Comisión `descuento_aplicado`  lo que la clienta dejó de pagar con el vale
- *   Neta     bruta − comisión      lo que entró en caja
+ *   Bruta con vales  `monto_compra`        precio de lista de lo vendido con vale
+ *   Comisión         `descuento_aplicado`  lo que la clienta dejó de pagar
+ *   Neta con vales   bruta − comisión      lo que entró por esa vía
+ *   Venta normal     `ventas_normales`     lo vendido sin vale, sin descuento
+ *   GRAN TOTAL       neta + venta normal   el dinero real de la tienda
  *
  * La resta no descuenta dos veces: el descuento se calcula SOBRE
  * `monto_compra`, así que esa columna es precio de lista, no lo cobrado.
+ *
+ * El gran total lleva la NETA y no la bruta porque mide dinero, no valor de
+ * lista: sumarle la bruta contaría lo que la clienta nunca llegó a pagar.
  */
 
 export default async function PaginaReporteTiendas({
@@ -68,13 +73,22 @@ export default async function PaginaReporteTiendas({
       bruta: a.bruta + Number(f.venta),
       comision: a.comision + Number(f.comision),
       neta: a.neta + Number(f.neta),
+      normales: a.normales + f.ventas_normales,
+      ventaNormal: a.ventaNormal + Number(f.venta_normal),
+      granTotal: a.granTotal + Number(f.gran_total),
     }),
-    { tickets: 0, bruta: 0, comision: 0, neta: 0 },
+    {
+      tickets: 0,
+      bruta: 0,
+      comision: 0,
+      neta: 0,
+      normales: 0,
+      ventaNormal: 0,
+      granTotal: 0,
+    },
   );
 
   const periodo = textoPeriodo(rango, fecha);
-  const parte = (n: number) =>
-    total.bruta > 0 ? `${Math.round((n / total.bruta) * 1000) / 10}%` : "—";
 
   return (
     <>
@@ -87,26 +101,29 @@ export default async function PaginaReporteTiendas({
         enlace={enlace}
       />
 
+      {/* Los cuatro totales, en el orden en que se leen: lo que se vendió con
+          vale a precio de lista, lo que de eso entró en caja, lo que se
+          vendió sin vale, y la suma real de las dos vías. */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaIndicador
-          etiqueta="VENTA BRUTA"
+          etiqueta="BRUTO CON VALES"
           valor={monedaCompacta(total.bruta)}
-          nota={periodo}
+          nota={`Menos ${monedaCompacta(total.comision)} de comisiones`}
         />
         <TarjetaIndicador
-          etiqueta="COMISIONES"
-          valor={monedaCompacta(total.comision)}
-          nota={`${parte(total.comision)} de la bruta`}
-        />
-        <TarjetaIndicador
-          etiqueta="VENTA NETA"
+          etiqueta="NETO CON VALES"
           valor={monedaCompacta(total.neta)}
-          nota={`${parte(total.neta)} de la bruta`}
+          nota={`${numero(total.tickets)} ${total.tickets === 1 ? "compra" : "compras"} con vale`}
         />
         <TarjetaIndicador
-          etiqueta="TIENDAS CON VENTA"
-          valor={numero(filas.length)}
-          nota={`${numero(total.tickets)} ${total.tickets === 1 ? "compra" : "compras"}`}
+          etiqueta="VENTAS NORMALES"
+          valor={monedaCompacta(total.ventaNormal)}
+          nota={`${numero(total.normales)} ${total.normales === 1 ? "venta" : "ventas"} sin vale`}
+        />
+        <TarjetaIndicador
+          etiqueta="GRAN TOTAL"
+          valor={monedaCompacta(total.granTotal)}
+          nota={periodo}
         />
       </section>
 
@@ -120,9 +137,31 @@ export default async function PaginaReporteTiendas({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
               <caption className="sr-only">
-                Venta bruta, comisiones y venta neta por punto de venta
+                Venta por tienda: con vale (bruta, comisiones y neta), sin vale
+                y gran total
               </caption>
               <thead>
+                {/* Dos filas de cabecera: con siete columnas de cifras, saber
+                    cuáles pertenecen a los vales y cuáles no es la mitad de
+                    poder leer la tabla. */}
+                <tr className="border-ink/6 border-b">
+                  <th />
+                  <th
+                    colSpan={4}
+                    scope="colgroup"
+                    className="text-ink/35 border-ink/8 border-x px-3 pt-3 pb-1 text-center text-[9px] font-medium tracking-[0.18em]"
+                  >
+                    CON VALE
+                  </th>
+                  <th
+                    colSpan={2}
+                    scope="colgroup"
+                    className="text-ink/35 px-3 pt-3 pb-1 text-center text-[9px] font-medium tracking-[0.18em]"
+                  >
+                    SIN VALE
+                  </th>
+                  <th />
+                </tr>
                 <tr className="border-ink/8 border-b">
                   <th
                     scope="col"
@@ -132,7 +171,7 @@ export default async function PaginaReporteTiendas({
                   </th>
                   <th
                     scope="col"
-                    className="text-ink/42 px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
+                    className="text-ink/42 border-ink/8 border-l px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
                   >
                     COMPRAS
                   </th>
@@ -140,7 +179,7 @@ export default async function PaginaReporteTiendas({
                     scope="col"
                     className="text-ink/42 px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
                   >
-                    VENTA BRUTA
+                    BRUTO
                   </th>
                   <th
                     scope="col"
@@ -150,9 +189,27 @@ export default async function PaginaReporteTiendas({
                   </th>
                   <th
                     scope="col"
+                    className="text-ink/42 border-ink/8 border-r px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
+                  >
+                    NETO
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-ink/42 px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
+                  >
+                    VENTAS
+                  </th>
+                  <th
+                    scope="col"
+                    className="text-ink/42 px-3 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
+                  >
+                    MONTO
+                  </th>
+                  <th
+                    scope="col"
                     className="text-ink/42 px-5 py-3 text-right text-[9px] font-medium tracking-[0.18em]"
                   >
-                    VENTA NETA
+                    GRAN TOTAL
                   </th>
                 </tr>
               </thead>
@@ -166,7 +223,7 @@ export default async function PaginaReporteTiendas({
                     >
                       {f.tienda}
                     </th>
-                    <td className="text-ink/55 px-3 py-[13px] text-right tabular-nums">
+                    <td className="text-ink/55 border-ink/8 border-l px-3 py-[13px] text-right tabular-nums">
                       {numero(f.tickets)}
                     </td>
                     <td className="px-3 py-[13px] text-right tabular-nums">
@@ -177,8 +234,19 @@ export default async function PaginaReporteTiendas({
                     <td className="text-clay px-3 py-[13px] text-right tabular-nums">
                       −{moneda(Number(f.comision))}
                     </td>
-                    <td className="px-5 py-[13px] text-right font-semibold tabular-nums">
+                    <td className="border-ink/8 border-r px-3 py-[13px] text-right tabular-nums">
                       {moneda(Number(f.neta))}
+                    </td>
+                    <td className="text-ink/55 px-3 py-[13px] text-right tabular-nums">
+                      {f.ventas_normales > 0 ? numero(f.ventas_normales) : "—"}
+                    </td>
+                    <td className="px-3 py-[13px] text-right tabular-nums">
+                      {f.ventas_normales > 0
+                        ? moneda(Number(f.venta_normal))
+                        : "—"}
+                    </td>
+                    <td className="px-5 py-[13px] text-right font-semibold tabular-nums">
+                      {moneda(Number(f.gran_total))}
                     </td>
                   </tr>
                 ))}
@@ -191,7 +259,7 @@ export default async function PaginaReporteTiendas({
                   <th scope="row" className="px-5 py-[15px] text-left text-[13px] font-semibold">
                     TOTAL
                   </th>
-                  <td className="px-3 py-[15px] text-right font-semibold tabular-nums">
+                  <td className="border-ink/8 border-l px-3 py-[15px] text-right font-semibold tabular-nums">
                     {numero(total.tickets)}
                   </td>
                   <td className="px-3 py-[15px] text-right font-semibold tabular-nums">
@@ -200,8 +268,17 @@ export default async function PaginaReporteTiendas({
                   <td className="text-clay px-3 py-[15px] text-right font-semibold tabular-nums">
                     −{moneda(total.comision)}
                   </td>
-                  <td className="px-5 py-[15px] text-right font-semibold tabular-nums">
+                  <td className="border-ink/8 border-r px-3 py-[15px] text-right font-semibold tabular-nums">
                     {moneda(total.neta)}
+                  </td>
+                  <td className="px-3 py-[15px] text-right font-semibold tabular-nums">
+                    {numero(total.normales)}
+                  </td>
+                  <td className="px-3 py-[15px] text-right font-semibold tabular-nums">
+                    {moneda(total.ventaNormal)}
+                  </td>
+                  <td className="px-5 py-[15px] text-right font-semibold tabular-nums">
+                    {moneda(total.granTotal)}
                   </td>
                 </tr>
               </tfoot>
@@ -211,9 +288,11 @@ export default async function PaginaReporteTiendas({
       </Tarjeta>
 
       <p className="text-ink/45 m-0 text-[11.5px]">
-        La venta bruta es el precio de lista de lo vendido; la comisión, el
-        descuento que otorgó el vale; la neta, lo que entró en caja. Las fechas
-        van en horario de Guatemala.
+        El bruto con vale es el precio de lista de lo vendido con vale; la
+        comisión, el descuento que otorgó; el neto, lo que de esa vía entró en
+        caja. La venta sin vale no lleva descuento. El gran total suma el neto
+        con vales más la venta sin vale: es el dinero real de la tienda. Las
+        fechas van en horario de Guatemala.
       </p>
     </>
   );

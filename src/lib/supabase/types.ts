@@ -244,6 +244,42 @@ export type Database = {
         Update: { valor?: string; descripcion?: string | null };
         Relationships: [];
       };
+
+      ventas_normales: {
+        Row: {
+          id: number;
+          usuario_id: number;
+          tienda_id: number;
+          monto: number;
+          monto_oro: number;
+          monto_plata: number;
+          ticket: string | null;
+          nota: string | null;
+          editada_por: number | null;
+          fecha_edicion: string | null;
+          fecha_creacion: string;
+        };
+        Insert: {
+          usuario_id: number;
+          tienda_id: number;
+          monto: number;
+          monto_oro?: number;
+          monto_plata?: number;
+          ticket?: string | null;
+          nota?: string | null;
+        };
+        Update: {
+          tienda_id?: number;
+          monto?: number;
+          monto_oro?: number;
+          monto_plata?: number;
+          ticket?: string | null;
+          nota?: string | null;
+          editada_por?: number | null;
+          fecha_edicion?: string | null;
+        };
+        Relationships: [];
+      };
     };
 
     Views: {
@@ -477,6 +513,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      vw_ventas_normales: {
+        Row: {
+          id: number;
+          tienda_id: number;
+          usuario_id: number;
+          monto: number;
+          monto_oro: number;
+          monto_plata: number;
+          ticket: string | null;
+          nota: string | null;
+          fecha_creacion: string;
+          editada_por: number | null;
+          fecha_edicion: string | null;
+          /** El día en horario de Guatemala. */
+          dia: string;
+          tienda: string;
+          vendedora: string;
+          editada_por_nombre: string | null;
+        };
+        Relationships: [];
+      };
     };
 
     Functions: {
@@ -648,6 +705,50 @@ export type Database = {
         }[];
       };
 
+      fn_registrar_venta_normal: {
+        Args: {
+          p_usuario_id: number;
+          p_tienda_id: number;
+          p_monto: number;
+          p_oro?: number;
+          p_plata?: number;
+          p_ticket?: string | null;
+          p_nota?: string | null;
+        };
+        Returns: number;
+      };
+
+      fn_editar_venta_normal: {
+        Args: {
+          p_id: number;
+          p_usuario_id: number;
+          p_tienda_id: number;
+          p_monto: number;
+          p_oro?: number;
+          p_plata?: number;
+          p_ticket?: string | null;
+          p_nota?: string | null;
+        };
+        Returns: void;
+      };
+
+      fn_eliminar_venta_normal: {
+        Args: { p_id: number; p_usuario_id: number };
+        Returns: void;
+      };
+
+      fn_ventas_normales_resumen: {
+        Args: VentasArgs;
+        Returns: {
+          ventas: number;
+          monto: number;
+          monto_oro: number;
+          monto_plata: number;
+          monto_otros: number;
+          promedio: number | null;
+        }[];
+      };
+
       fn_ventas_por_tienda: {
         Args: VentasArgs;
         Returns: {
@@ -659,6 +760,9 @@ export type Database = {
           comision: number;
           neta: number;
           clientes: number;
+          ventas_normales: number;
+          venta_normal: number;
+          gran_total: number;
         }[];
       };
 

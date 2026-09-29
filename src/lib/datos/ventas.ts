@@ -57,9 +57,24 @@ export type VentaPorTienda = {
   ticket_promedio: number | null;
   /** El descuento otorgado: lo que la clienta dejó de pagar. */
   comision: number;
-  /** Lo que entró en caja: `venta - comision`. */
+  /** Lo que entró en caja por la vía de los vales: `venta - comision`. */
   neta: number;
   clientes: number;
+  /** Cuántas ventas de mostrador, sin vale. */
+  ventas_normales: number;
+  /** Lo vendido sin vale. */
+  venta_normal: number;
+  /** Dinero real de la tienda: `neta + venta_normal`. */
+  gran_total: number;
+};
+
+export type ResumenNormales = {
+  ventas: number;
+  monto: number;
+  monto_oro: number;
+  monto_plata: number;
+  monto_otros: number;
+  promedio: number | null;
 };
 
 export type CeldaCalor = {
@@ -115,6 +130,35 @@ export async function ventasPorTienda(rango: RangoVentas = {}) {
   const { data, error } = await db().rpc("fn_ventas_por_tienda", argumentos(rango));
   if (error) throw new Error(`No se pudieron leer las ventas por tienda: ${error.message}`);
   return (data ?? []) as VentaPorTienda[];
+}
+
+/**
+ * La venta sin vale del periodo.
+ *
+ * Va en su propia consulta y no dentro de `resumenVentas` porque son dos
+ * universos distintos: aquel resume la campaña —tickets, clientes, vales
+ * usados— y mezclarlos daría un «ticket promedio» que promedia peras con
+ * manzanas.
+ */
+export async function resumenNormales(rango: RangoVentas = {}) {
+  const { data, error } = await db().rpc(
+    "fn_ventas_normales_resumen",
+    argumentos(rango),
+  );
+  if (error) {
+    throw new Error(`No se pudo leer la venta sin vale: ${error.message}`);
+  }
+  // La función devuelve una sola fila; PostgREST la entrega como arreglo.
+  return (
+    (data as ResumenNormales[] | null)?.[0] ?? {
+      ventas: 0,
+      monto: 0,
+      monto_oro: 0,
+      monto_plata: 0,
+      monto_otros: 0,
+      promedio: null,
+    }
+  );
 }
 
 export async function mapaDeCalor(rango: RangoVentas = {}) {

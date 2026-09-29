@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Banknote,
   House,
   QrCode,
   ScanLine,
@@ -27,6 +28,7 @@ const ICONOS: Record<NonNullable<ItemNav["icono"]>, LucideIcon> = {
   redimir: ScanLine,
   vales: Ticket,
   redenciones: Ticket,
+  ventas: Banknote,
 };
 
 export function BarraMovil({ rol }: { rol: RolUsuario }) {

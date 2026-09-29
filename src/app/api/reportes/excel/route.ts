@@ -5,13 +5,16 @@ import { requerirAdmin } from "@/lib/auth/guardas";
 import { desempenoVendedoras } from "@/lib/datos/metricas";
 import { listarRedenciones } from "@/lib/datos/redenciones";
 import { listarVales } from "@/lib/datos/vales";
+import { listarVentasNormales } from "@/lib/datos/ventas-normales";
+import { ventasPorTienda } from "@/lib/datos/ventas";
 import { fechaExcel } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
 
 /**
- * Reporte completo en Excel: tres hojas —vendedoras, vales y redenciones—.
+ * Reporte completo en Excel: cinco hojas —vendedoras, vales, redenciones,
+ * ventas sin vale y el resumen por tienda con los cuatro totales—.
  *
  * Se genera un .xlsx de verdad y no un CSV porque Excel interpreta el
  * separador y la codificación según la configuración regional de cada
@@ -73,11 +76,14 @@ function hoja(
 export async function GET() {
   await requerirAdmin();
 
-  const [desempeno, vales, redenciones] = await Promise.all([
-    desempenoVendedoras("ingreso"),
-    listarVales({ porPagina: 5000 }),
-    listarRedenciones({ porPagina: 5000 }),
-  ]);
+  const [desempeno, vales, redenciones, normales, porTienda] =
+    await Promise.all([
+      desempenoVendedoras("ingreso"),
+      listarVales({ porPagina: 5000 }),
+      listarRedenciones({ porPagina: 5000 }),
+      listarVentasNormales({ porPagina: 5000 }),
+      ventasPorTienda(),
+    ]);
 
   const libro = new ExcelJS.Workbook();
   libro.creator = "ARIGA SMART VALE";
@@ -226,6 +232,88 @@ export async function GET() {
       nota: r.nota ?? "",
     })),
   );
+
+  /* ── Ventas sin vale ────────────────────────────────────────────────── */
+  hoja(
+    libro,
+    "Ventas sin vale",
+    [
+      { header: "Fecha", key: "fecha", width: 20, formato: FECHA_HORA },
+      { header: "Tienda", key: "tienda", width: 22 },
+      { header: "Registró", key: "vendedora", width: 24 },
+      { header: "Ticket", key: "ticket", width: 14 },
+      { header: "Monto", key: "monto", width: 15, formato: MONEDA },
+      { header: "En oro", key: "oro", width: 14, formato: MONEDA },
+      { header: "En plata", key: "plata", width: 14, formato: MONEDA },
+      { header: "Otras piezas", key: "otras", width: 15, formato: MONEDA },
+    ],
+    normales.ventas.map((v) => ({
+      fecha: fechaExcel(v.fecha_creacion),
+      tienda: v.tienda,
+      vendedora: v.vendedora,
+      ticket: v.ticket ?? "",
+      monto: Number(v.monto),
+      oro: Number(v.monto_oro),
+      plata: Number(v.monto_plata),
+      otras: Number(v.monto) - Number(v.monto_oro) - Number(v.monto_plata),
+    })),
+  );
+
+  /* ── Resumen por tienda ─────────────────────────────────────────────── */
+  //
+  // Es la hoja que cuadra las dos vías de venta, y la única con fila de
+  // totales: quien liquida abre esta, no las de detalle.
+  const resumen = hoja(
+    libro,
+    "Por tienda",
+    [
+      { header: "Tienda", key: "tienda", width: 24 },
+      { header: "Compras con vale", key: "tickets", width: 17 },
+      { header: "Bruto con vales", key: "bruta", width: 17, formato: MONEDA },
+      { header: "Comisiones", key: "comision", width: 16, formato: MONEDA },
+      { header: "Neto con vales", key: "neta", width: 17, formato: MONEDA },
+      { header: "Ventas sin vale", key: "normales", width: 16 },
+      { header: "Monto sin vale", key: "ventaNormal", width: 17, formato: MONEDA },
+      { header: "Gran total", key: "granTotal", width: 17, formato: MONEDA },
+    ],
+    porTienda.map((t) => ({
+      tienda: t.tienda,
+      tickets: t.tickets,
+      bruta: Number(t.venta),
+      comision: Number(t.comision),
+      neta: Number(t.neta),
+      normales: t.ventas_normales,
+      ventaNormal: Number(t.venta_normal),
+      granTotal: Number(t.gran_total),
+    })),
+  );
+
+  // La fila de totales, con fórmulas y no con cifras ya sumadas: quien abra
+  // el archivo y filtre o corrija una fila ve el total seguirle. Un número
+  // fijo se quedaría contando lo que ya no está.
+  if (porTienda.length > 0) {
+    const primera = 2;
+    const ultima = porTienda.length + 1;
+    const suma = (col: string) => ({
+      formula: `SUBTOTAL(109,${col}${primera}:${col}${ultima})`,
+    });
+
+    const fila = resumen.addRow({
+      tienda: "TOTAL",
+      tickets: suma("B"),
+      bruta: suma("C"),
+      comision: suma("D"),
+      neta: suma("E"),
+      normales: suma("F"),
+      ventaNormal: suma("G"),
+      granTotal: suma("H"),
+    });
+
+    fila.font = { bold: true };
+    fila.eachCell((celda) => {
+      celda.border = { top: { style: "double", color: CABECERA } };
+    });
+  }
 
   const buffer = await libro.xlsx.writeBuffer();
   const fecha = new Date().toISOString().slice(0, 10);
