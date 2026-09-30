@@ -6,8 +6,9 @@ import { Vacio } from "@/components/ui/vacio";
 import { alcanceDe, esAdmin, requerirSesion } from "@/lib/auth/guardas";
 import { listarTiendas } from "@/lib/datos/tiendas";
 import { listarVentasNormales } from "@/lib/datos/ventas-normales";
-import { fechaHora, moneda, monedaCompacta, numero } from "@/lib/format";
+import { monedaCompacta, numero } from "@/lib/format";
 
+import { FilaVenta } from "./fila";
 import { FormularioVentaNormal } from "./formulario";
 
 export const metadata: Metadata = { title: "Venta sin vale" };
@@ -42,6 +43,12 @@ export default async function PaginaVentasNormales({
   const paginas = Math.max(1, Math.ceil(total / porPagina));
   const admin = esAdmin(sesion);
 
+  // Volver aquí tras borrar, con la página puesta: borrar una línea de la
+  // página 3 no debería devolver a la 1.
+  const volverA = pagina > 1 ? `/panel/ventas?pagina=${pagina}` : "/panel/ventas";
+
+  const fallo = typeof params.fallo === "string" ? params.fallo : null;
+
   const aviso =
     params.ok === "1"
       ? "Se registró la venta."
@@ -53,7 +60,14 @@ export default async function PaginaVentasNormales({
 
   return (
     <>
-      {aviso ? (
+      {fallo ? (
+        <p
+          role="alert"
+          className="border-clay/30 bg-clay/6 text-clay rounded-card m-0 border px-4 py-3 text-[12.5px]"
+        >
+          No se pudo eliminar la venta: {fallo}
+        </p>
+      ) : aviso ? (
         <p className="border-ink/12 bg-ink/3 text-ink/65 rounded-card m-0 border px-4 py-3 text-[12.5px]">
           {aviso}
         </p>
@@ -100,40 +114,22 @@ export default async function PaginaVentasNormales({
           ) : (
             <ul className="m-0 list-none p-0">
               {ventas.map((v) => (
-                <li
+                <FilaVenta
                   key={v.id}
-                  className="border-ink/6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t px-5 py-[13px] first:border-t-0"
-                >
-                  <span className="flex min-w-0 flex-1 basis-[180px] flex-col">
-                    <span className="truncate text-[13px] font-medium">
-                      {v.tienda}
-                    </span>
-                    <span className="text-ink/42 truncate text-[11px]">
-                      {fechaHora(v.fecha_creacion)} · {v.vendedora}
-                      {v.ticket ? ` · ticket ${v.ticket}` : ""}
-                      {v.fecha_edicion ? " · editada" : ""}
-                    </span>
-                  </span>
-
-                  <span className="flex flex-col items-end">
-                    <span className="text-[12.5px] font-semibold tabular-nums">
-                      {moneda(Number(v.monto))}
-                    </span>
-                    <span className="text-ink/42 text-[11px] tabular-nums">
-                      oro {moneda(Number(v.monto_oro))} · plata{" "}
-                      {moneda(Number(v.monto_plata))}
-                    </span>
-                  </span>
-
-                  {admin ? (
-                    <Link
-                      href={`/panel/ventas/${v.id}`}
-                      className="text-gold-dark shrink-0 text-[11.5px]"
-                    >
-                      Editar
-                    </Link>
-                  ) : null}
-                </li>
+                  admin={admin}
+                  volverA={volverA}
+                  venta={{
+                    id: v.id,
+                    tienda: v.tienda,
+                    vendedora: v.vendedora,
+                    monto: Number(v.monto),
+                    monto_oro: Number(v.monto_oro),
+                    monto_plata: Number(v.monto_plata),
+                    ticket: v.ticket,
+                    fecha_creacion: v.fecha_creacion,
+                    fecha_edicion: v.fecha_edicion,
+                  }}
+                />
               ))}
             </ul>
           )}

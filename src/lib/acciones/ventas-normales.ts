@@ -156,6 +156,13 @@ export async function editarVentaNormal(
   redirect("/panel/ventas?editada=1");
 }
 
+/**
+ * Borra una venta. Solo administradores, y la base lo vuelve a comprobar.
+ *
+ * Se llama desde dos sitios —la ficha y cada línea del historial—, así que
+ * vuelve a donde estaba quien la usó en vez de a una ruta fija: borrar la
+ * cuarta línea de la página 3 no debería devolver a la página 1.
+ */
 export async function eliminarVentaNormal(formData: FormData) {
   const sesion = await requerirAdmin();
 
@@ -167,9 +174,24 @@ export async function eliminarVentaNormal(formData: FormData) {
     p_usuario_id: sesion.usuarioId,
   });
 
-  if (error) throw new Error(`No se pudo eliminar la venta: ${error.message}`);
-
   revalidatePath("/panel/ventas");
   revalidatePath("/panel/reportes/tiendas");
-  redirect("/panel/ventas?eliminada=1");
+
+  // El destino viaja en el formulario. Se acota a una ruta interna: si
+  // llegara de fuera manipulado, `redirect` sería un salto abierto a
+  // cualquier dominio.
+  const crudo = String(formData.get("volverA") ?? "");
+  const volverA = crudo.startsWith("/panel/ventas") ? crudo : "/panel/ventas";
+
+  const separador = volverA.includes("?") ? "&" : "?";
+
+  if (error) {
+    // Sin `throw`: una pantalla de error para un borrado fallido pierde el
+    // contexto entero. El aviso viaja en la URL y la lista sigue en pie.
+    return redirect(
+      `${volverA}${separador}fallo=${encodeURIComponent(error.message)}`,
+    );
+  }
+
+  redirect(`${volverA}${separador}eliminada=1`);
 }
