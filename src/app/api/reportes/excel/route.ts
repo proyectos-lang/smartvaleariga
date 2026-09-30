@@ -7,14 +7,17 @@ import { listarRedenciones } from "@/lib/datos/redenciones";
 import { listarVales } from "@/lib/datos/vales";
 import { listarVentasNormales } from "@/lib/datos/ventas-normales";
 import { ventasPorTienda } from "@/lib/datos/ventas";
+import { historialCompleto } from "@/lib/datos/historial";
+import { nombreVia } from "@/components/ventas/chip-via";
 import { fechaExcel } from "@/lib/format";
 import { ETIQUETA_SEGMENTO, ETIQUETA_TIPO } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
 
 /**
- * Reporte completo en Excel: cinco hojas —vendedoras, vales, redenciones,
- * ventas sin vale y el resumen por tienda con los cuatro totales—.
+ * Reporte completo en Excel: seis hojas —vendedoras, vales, redenciones,
+ * ventas sin vale, el historial con las dos vías juntas y el resumen por
+ * tienda con los cuatro totales—.
  *
  * Se genera un .xlsx de verdad y no un CSV porque Excel interpreta el
  * separador y la codificación según la configuración regional de cada
@@ -84,6 +87,9 @@ export async function GET() {
       listarVentasNormales({ porPagina: 5000 }),
       ventasPorTienda(),
     ]);
+
+  // Aparte del Promise.all: recorre páginas, así que depende de sí misma.
+  const historial = await historialCompleto();
 
   const libro = new ExcelJS.Workbook();
   libro.creator = "ARIGA SMART VALE";
@@ -256,6 +262,39 @@ export async function GET() {
       oro: Number(v.monto_oro),
       plata: Number(v.monto_plata),
       otras: Number(v.monto) - Number(v.monto_oro) - Number(v.monto_plata),
+    })),
+  );
+
+  /* ── Todas las ventas ───────────────────────────────────────────────── */
+  //
+  // Las dos vías juntas, con la columna que las distingue. Es la hoja para
+  // quien quiere el total de lo vendido sin cruzar dos pestañas a mano.
+  hoja(
+    libro,
+    "Todas las ventas",
+    [
+      { header: "Fecha", key: "fecha", width: 20, formato: FECHA_HORA },
+      { header: "Tipo de venta", key: "via", width: 14 },
+      { header: "Vale", key: "vale", width: 16 },
+      { header: "Puerta", key: "puerta", width: 9 },
+      { header: "Tienda", key: "tienda", width: 22 },
+      { header: "Registró", key: "vendedora", width: 24 },
+      { header: "Comprador", key: "comprador", width: 26 },
+      { header: "Monto", key: "monto", width: 15, formato: MONEDA },
+      { header: "Descuento", key: "descuento", width: 15, formato: MONEDA },
+      { header: "Entró en caja", key: "neto", width: 16, formato: MONEDA },
+    ],
+    historial.map((l) => ({
+      fecha: fechaExcel(l.fecha_creacion),
+      via: nombreVia(l.tipo),
+      vale: l.vale_codigo ?? "",
+      puerta: l.vale_tipo ?? "",
+      tienda: l.tienda,
+      vendedora: l.vendedora,
+      comprador: l.comprador ?? "",
+      monto: Number(l.monto),
+      descuento: Number(l.descuento),
+      neto: Number(l.neto),
     })),
   );
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
+  ListOrdered,
   House,
   QrCode,
   ScanLine,
@@ -29,6 +30,7 @@ const ICONOS: Record<NonNullable<ItemNav["icono"]>, LucideIcon> = {
   vales: Ticket,
   redenciones: Ticket,
   ventas: Banknote,
+  historial: ListOrdered,
 };
 
 export function BarraMovil({ rol }: { rol: RolUsuario }) {

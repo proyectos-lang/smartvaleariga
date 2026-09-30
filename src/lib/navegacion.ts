@@ -17,7 +17,8 @@ export type ItemNav = {
     | "redimir"
     | "vales"
     | "redenciones"
-    | "ventas";
+    | "ventas"
+    | "historial";
   /** Aparece en la barra inferior del móvil. */
   destacado?: boolean;
 };
@@ -64,6 +65,12 @@ export const NAVEGACION: GrupoNav[] = [
         href: "/panel/ventas",
         titulo: "Venta sin vale",
         icono: "ventas",
+      },
+      {
+        nombre: "Historial",
+        href: "/panel/historial",
+        titulo: "Historial de ventas",
+        icono: "historial",
       },
     ],
   },

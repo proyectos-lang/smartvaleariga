@@ -513,6 +513,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      vw_historial_ventas: {
+        Row: {
+          tipo: "vale" | "normal";
+          id: number;
+          /** `tipo-id`: el id solo no es único entre las dos tablas. */
+          clave: string;
+          fecha_creacion: string;
+          /** El día en horario de Guatemala. */
+          dia: string;
+          tienda_id: number;
+          tienda: string;
+          usuario_id: number;
+          vendedora: string;
+          /** Quién emitió el vale; en la venta normal, quién la registró. */
+          emisora_id: number;
+          monto: number;
+          monto_oro: number;
+          monto_plata: number;
+          descuento: number;
+          neto: number;
+          ticket: string | null;
+          vale_codigo: string | null;
+          vale_tipo: string | null;
+          comprador: string | null;
+          comprador_telefono: string | null;
+        };
+        Relationships: [];
+      };
+
       vw_ventas_normales: {
         Row: {
           id: number;

@@ -21,7 +21,8 @@
     "db:new": "supabase migration new",
     "db:push": "supabase db push",
     "db:pull": "supabase db pull",
-    "db:types": "supabase gen types typescript --linked --schema smartvale > src/lib/supabase/types.ts"
+    "db:types": "supabase gen types typescript --linked --schema smartvale > src/lib/supabase/types.ts",
+    "test:historial": "node --env-file=.env.local scripts/probar-historial.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.1",
