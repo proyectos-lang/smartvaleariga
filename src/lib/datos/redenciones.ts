@@ -123,29 +123,85 @@ export type FiltroRedenciones = {
   usuarioId?: number | null;
   tiendaId?: number;
   busqueda?: string;
+  /** Rango por día local, `AAAA-MM-DD`, ambos inclusive. */
+  desde?: string | null;
+  hasta?: string | null;
   pagina?: number;
   porPagina?: number;
 };
+
+/**
+ * Un día local convertido al instante en que empieza, en UTC.
+ *
+ * Guatemala está a UTC−6 todo el año —no cambia la hora—, así que el desfase
+ * es constante y la cuenta exacta. Sin esto, «octubre» empezaría a las 18:00
+ * del 30 de septiembre y las compras de esa tarde contarían en el mes que no
+ * es.
+ */
+const DESFASE_GT = "06:00:00";
+
+function inicioDelDia(dia: string) {
+  return `${dia}T${DESFASE_GT}Z`;
+}
+
+function inicioDelDiaSiguiente(dia: string) {
+  const d = new Date(`${dia}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return `${d.toISOString().slice(0, 10)}T${DESFASE_GT}Z`;
+}
+
+/** Tope al sumar: sin él, una base grande pediría todo de golpe. */
+const TOPE_SUMA = 20000;
 
 export async function listarRedenciones({
   usuarioId = null,
   tiendaId,
   busqueda,
+  desde,
+  hasta,
   pagina = 1,
   porPagina = 25,
 }: FiltroRedenciones = {}) {
-  const desde = (pagina - 1) * porPagina;
+  // `salto` y no `desde`: ese nombre lo ocupa ahora el inicio del rango de
+  // fechas, y confundir un desplazamiento de página con una fecha sería un
+  // error silencioso.
+  const salto = (pagina - 1) * porPagina;
 
   let consulta = db()
     .from("redenciones")
     .select(SELECCION, { count: "exact" })
     .order("fecha_creacion", { ascending: false })
-    .range(desde, desde + porPagina - 1);
+    .range(salto, salto + porPagina - 1);
+
+  /*
+   * La suma va en su propia consulta y no sobre las filas de la página: con
+   * veinticinco por página, una vendedora con sesenta compras veía un total
+   * que no era el suyo, sino el de lo que cupo en pantalla. Pide solo las dos
+   * columnas que suma, así que es barata.
+   */
+  let sumas = db()
+    .from("redenciones")
+    .select("monto_compra,descuento_aplicado,vales!inner(usuario_id)")
+    .limit(TOPE_SUMA);
 
   // El alcance se mide por quién EMITIÓ el vale, no por quién cobró: es la
   // vendedora que captó al cliente la que ve el resultado de su gestión.
-  if (usuarioId !== null) consulta = consulta.eq("vales.usuario_id", usuarioId);
-  if (tiendaId) consulta = consulta.eq("tienda_id", tiendaId);
+  if (usuarioId !== null) {
+    consulta = consulta.eq("vales.usuario_id", usuarioId);
+    sumas = sumas.eq("vales.usuario_id", usuarioId);
+  }
+  if (tiendaId) {
+    consulta = consulta.eq("tienda_id", tiendaId);
+    sumas = sumas.eq("tienda_id", tiendaId);
+  }
+  if (desde) {
+    consulta = consulta.gte("fecha_creacion", inicioDelDia(desde));
+    sumas = sumas.gte("fecha_creacion", inicioDelDia(desde));
+  }
+  if (hasta) {
+    consulta = consulta.lt("fecha_creacion", inicioDelDiaSiguiente(hasta));
+    sumas = sumas.lt("fecha_creacion", inicioDelDiaSiguiente(hasta));
+  }
 
   if (busqueda?.trim()) {
     const t = busqueda.trim().replace(/[%,()]/g, "");
@@ -167,19 +223,43 @@ export async function listarRedenciones({
 
     const ids = (contactos ?? []).map((c) => c.id);
 
-    consulta = consulta.or(
-      ids.length
-        ? `ticket.ilike.%${t}%,contacto_id.in.(${ids.join(",")})`
-        : `ticket.ilike.%${t}%`,
-    );
+    const condicion = ids.length
+      ? `ticket.ilike.%${t}%,contacto_id.in.(${ids.join(",")})`
+      : `ticket.ilike.%${t}%`;
+
+    consulta = consulta.or(condicion);
+    sumas = sumas.or(condicion);
   }
 
-  const { data, error, count } = await consulta;
+  const [{ data, error, count }, totales] = await Promise.all([
+    consulta,
+    sumas,
+  ]);
+
   if (error) throw new Error(`No se pudieron listar las redenciones: ${error.message}`);
+  if (totales.error) {
+    throw new Error(`No se pudieron sumar las compras: ${totales.error.message}`);
+  }
+
+  // Del filtro entero, no de la página: es la cifra que la vendedora mira
+  // para saber cuánto lleva en el mes.
+  const suma = (
+    (totales.data ?? []) as unknown as {
+      monto_compra: number;
+      descuento_aplicado: number;
+    }[]
+  ).reduce(
+    (a, r) => ({
+      venta: a.venta + Number(r.monto_compra),
+      descuento: a.descuento + Number(r.descuento_aplicado),
+    }),
+    { venta: 0, descuento: 0 },
+  );
 
   return {
     redenciones: ((data ?? []) as unknown as FilaCruda[]).map(normalizar),
     total: count ?? 0,
+    suma,
     pagina,
     porPagina,
   };

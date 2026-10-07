@@ -1,13 +1,13 @@
-import type { RangoVentas } from "@/lib/datos/ventas";
 import { ZONA } from "@/lib/format";
 
 /**
- * El rango de fechas que comparten las vistas de inteligencia comercial.
+ * El rango de fechas que comparten todas las pantallas con filtro de días.
  *
- * Vive aparte porque lo usan el tablero de ventas y el reporte por tienda, y
- * dos copias de esta lógica se separarían en cuanto alguien tocara una: los
- * dos tienen que entender «los últimos 7 días» exactamente igual, o el mismo
- * atajo daría cifras distintas en cada pestaña.
+ * Vive en `lib` y no dentro de una ruta porque lo usan el tablero de ventas,
+ * el reporte por tienda y las redenciones —esta última visible para las
+ * vendedoras, así que no puede colgar de un módulo de administración—. Dos
+ * copias de esto se separarían en cuanto alguien tocara una, y el mismo
+ * atajo daría cifras distintas en cada pantalla.
  */
 
 export const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -53,6 +53,43 @@ export function rangoDelAtajo(
   }
 }
 
+/** El primer y el último día de un mes `AAAA-MM`. */
+export function limitesDelMes(mes: string) {
+  const [a, m] = mes.split("-").map(Number);
+  // Día 0 del mes siguiente: el último del pedido, sin tablas de días.
+  const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return { desde: `${mes}-01`, hasta: `${mes}-${String(ultimo).padStart(2, "0")}` };
+}
+
+/**
+ * Los últimos meses, del más reciente al más antiguo, para un selector.
+ *
+ * Se calculan desde hoy en Guatemala: en el servidor, que corre en UTC, el
+ * primero de mes empieza seis horas antes y el día 1 por la madrugada se
+ * ofrecería un mes que allí todavía no ha comenzado.
+ */
+export function mesesRecientes(cuantos = 12) {
+  const hoy = hoyLocal();
+  const [a, m] = hoy.slice(0, 7).split("-").map(Number);
+  const meses: { clave: string; etiqueta: string }[] = [];
+
+  for (let i = 0; i < cuantos; i++) {
+    const d = new Date(Date.UTC(a, m - 1 - i, 1));
+    const clave = d.toISOString().slice(0, 7);
+    meses.push({
+      clave,
+      etiqueta: new Intl.DateTimeFormat("es-GT", {
+        timeZone: "UTC",
+        month: "long",
+        year: "numeric",
+      }).format(d),
+    });
+  }
+  return meses;
+}
+
+export const ES_MES = /^\d{4}-\d{2}$/;
+
 export function texto(v: string | string[] | undefined) {
   return typeof v === "string" ? v.trim() : "";
 }
@@ -79,7 +116,7 @@ export function resolverRango(
 
 /** El periodo en palabras, para el encabezado de la vista. */
 export function textoPeriodo(
-  rango: RangoVentas,
+  rango: { desde?: string | null; hasta?: string | null },
   fecha: (v: string) => string,
   primerDia?: string | null,
   ultimoDia?: string | null,

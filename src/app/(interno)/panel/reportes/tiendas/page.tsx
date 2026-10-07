@@ -7,7 +7,7 @@ import { requerirAdmin } from "@/lib/auth/guardas";
 import { ventasPorTienda, type RangoVentas } from "@/lib/datos/ventas";
 import { fecha, moneda, monedaCompacta, numero } from "@/lib/format";
 
-import { resolverRango, textoPeriodo, texto } from "../rango";
+import { resolverRango, textoPeriodo, texto } from "@/lib/rango-fechas";
 import { FiltrosTiendas } from "./filtros";
 
 export const metadata: Metadata = { title: "Reporte por tienda" };

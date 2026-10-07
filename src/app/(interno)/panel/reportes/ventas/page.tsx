@@ -18,7 +18,7 @@ import {
 } from "@/lib/datos/ventas";
 import { fecha, moneda, monedaCompacta, monedaCorta } from "@/lib/format";
 
-import { resolverRango, sumarDias, textoPeriodo, texto } from "../rango";
+import { resolverRango, sumarDias, textoPeriodo, texto } from "@/lib/rango-fechas";
 import { FiltrosVentas } from "./filtros";
 
 export const metadata: Metadata = { title: "Ventas" };
